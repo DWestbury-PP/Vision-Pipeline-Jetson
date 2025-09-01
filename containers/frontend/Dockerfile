@@ -5,10 +5,10 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY frontend/package*.json ./
+COPY frontend/package.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install
 
 # Copy source code
 COPY frontend/ ./
