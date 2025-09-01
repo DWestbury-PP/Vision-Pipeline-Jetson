@@ -1,0 +1,166 @@
+version: '3.8'
+
+services:
+  # Redis message bus
+  redis:
+    image: redis:7-alpine
+    container_name: moondream-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - moondream-network
+
+  # Camera service
+  camera:
+    build:
+      context: .
+      dockerfile: containers/camera/Dockerfile
+    container_name: moondream-camera
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CAMERA_TYPE=mac_studio
+      - CAMERA_WIDTH=1920
+      - CAMERA_HEIGHT=1080
+      - CAMERA_FPS=30
+      - LOG_LEVEL=INFO
+    volumes:
+      - /dev:/dev  # Access to camera devices
+    privileged: true  # Required for camera access
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - moondream-network
+
+  # YOLO service
+  yolo:
+    build:
+      context: .
+      dockerfile: containers/yolo/Dockerfile
+    container_name: moondream-yolo
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - YOLO_MODEL=yolo11n.pt
+      - YOLO_CONFIDENCE=0.5
+      - YOLO_DEVICE=cpu  # Change to mps for Apple Silicon, cuda for NVIDIA
+      - YOLO_FRAME_STRIDE=1
+      - LOG_LEVEL=INFO
+    volumes:
+      - model_cache:/root/.cache  # Cache for downloaded models
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - moondream-network
+
+  # Moondream VLM service
+  moondream:
+    build:
+      context: .
+      dockerfile: containers/moondream/Dockerfile
+    container_name: moondream-vlm
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MOONDREAM_MODEL=vikhyatk/moondream2
+      - MOONDREAM_DEVICE=cpu  # Change to mps for Apple Silicon, cuda for NVIDIA
+      - MOONDREAM_INSTANCES=2
+      - VLM_FRAME_STRIDE=10
+      - LOG_LEVEL=INFO
+    volumes:
+      - model_cache:/root/.cache  # Cache for downloaded models
+      - huggingface_cache:/root/.cache/huggingface  # HuggingFace model cache
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - moondream-network
+
+  # Fusion service
+  fusion:
+    build:
+      context: .
+      dockerfile: containers/fusion/Dockerfile
+    container_name: moondream-fusion
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+      yolo:
+        condition: service_started
+      moondream:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - moondream-network
+
+  # API service
+  api:
+    build:
+      context: .
+      dockerfile: containers/api/Dockerfile
+    container_name: moondream-api
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - WEBSOCKET_PORT=8001
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - moondream-network
+
+  # Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: containers/frontend/Dockerfile
+    container_name: moondream-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_BASE_URL=http://localhost:8000
+      - REACT_APP_WS_URL=ws://localhost:8001
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - moondream-network
+
+volumes:
+  redis_data:
+    driver: local
+  model_cache:
+    driver: local
+  huggingface_cache:
+    driver: local
+
+networks:
+  moondream-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
