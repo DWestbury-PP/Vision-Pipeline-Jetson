@@ -1,6 +1,6 @@
 """Shared data models for the Moondream Vision Pipeline."""
 
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any, Tuple, Literal
 from pydantic import BaseModel, Field
 from datetime import datetime
 import numpy as np
@@ -143,44 +143,44 @@ class BusMessage(BaseModel):
 
 class FrameMessage(BusMessage):
     """Frame message for the message bus."""
-    message_type: str = Field(default="frame", const=True)
+    message_type: Literal["frame"] = Field(default="frame")
     frame_metadata: FrameMetadata
     # Frame data is transmitted separately
 
 
 class DetectionMessage(BusMessage):
     """Detection result message."""
-    message_type: str = Field(default="detection", const=True)
+    message_type: Literal["detection"] = Field(default="detection")
     result: DetectionResult
     frame_id: int
 
 
 class VLMMessage(BusMessage):
     """VLM result message."""
-    message_type: str = Field(default="vlm", const=True)
+    message_type: Literal["vlm"] = Field(default="vlm")
     result: VLMResult
     frame_id: int
 
 
 class ChatRequestMessage(BusMessage):
     """Chat request message."""
-    message_type: str = Field(default="chat_request", const=True)
+    message_type: Literal["chat_request"] = Field(default="chat_request")
     chat_message: ChatMessage
 
 
 class ChatResponseMessage(BusMessage):
     """Chat response message."""
-    message_type: str = Field(default="chat_response", const=True)
+    message_type: Literal["chat_response"] = Field(default="chat_response")
     chat_response: ChatResponse
 
 
 class StatusMessage(BusMessage):
     """System status message."""
-    message_type: str = Field(default="status", const=True)
+    message_type: Literal["status"] = Field(default="status")
     status: SystemStatus
 
 
 class ConfigurationMessage(BusMessage):
     """Configuration update message.""" 
-    message_type: str = Field(default="configuration", const=True)
+    message_type: Literal["configuration"] = Field(default="configuration")
     configuration: Dict[str, Any]
