@@ -1,7 +1,7 @@
-# YOLO service Dockerfile
+# Base Dockerfile for all Python services
 FROM python:3.11-slim
 
-# Install system dependencies for OpenCV and YOLO
+# Install minimal system dependencies
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-dri \
     libglib2.0-0 \
@@ -16,19 +16,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source code
-COPY services/ ./services/
+# Copy shared code
+COPY services/shared/ ./services/shared/
+COPY services/message_bus/ ./services/message_bus/
 COPY env.example .env
-
-# YOLO model will be downloaded on first run
 
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python -c "import redis; r=redis.Redis(host='redis', port=6379); r.ping()" || exit 1
-
-# Run the YOLO service
-CMD ["python", "-m", "services.cv_services.yolo_service"]

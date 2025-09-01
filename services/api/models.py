@@ -1,6 +1,6 @@
 """Pydantic models for API requests and responses."""
 
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Any, Union, Literal
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -19,14 +19,14 @@ class WSMessage(BaseModel):
 
 class WSFrameUpdate(WSMessage):
     """WebSocket message for frame updates."""
-    message_type: str = Field(default="frame_update", const=True)
+    message_type: Literal["frame_update"] = Field(default="frame_update")
     frame_metadata: FrameMetadata
     frame_data_url: Optional[str] = Field(None, description="Base64 encoded frame data URL")
 
 
 class WSDetectionUpdate(WSMessage):
     """WebSocket message for detection updates."""
-    message_type: str = Field(default="detection_update", const=True)
+    message_type: Literal["detection_update"] = Field(default="detection_update")
     frame_id: int
     yolo_result: Optional[DetectionResult] = None
     vlm_result: Optional[VLMResult] = None
@@ -35,19 +35,19 @@ class WSDetectionUpdate(WSMessage):
 
 class WSStatusUpdate(WSMessage):
     """WebSocket message for status updates."""
-    message_type: str = Field(default="status_update", const=True)
+    message_type: Literal["status_update"] = Field(default="status_update")
     status: SystemStatus
 
 
 class WSChatResponse(WSMessage):
     """WebSocket message for chat responses."""
-    message_type: str = Field(default="chat_response", const=True)
+    message_type: Literal["chat_response"] = Field(default="chat_response")
     chat_response: ChatResponse
 
 
 class WSError(WSMessage):
     """WebSocket error message."""
-    message_type: str = Field(default="error", const=True)
+    message_type: Literal["error"] = Field(default="error")
     error_code: str
     error_message: str
     details: Optional[Dict[str, Any]] = None
