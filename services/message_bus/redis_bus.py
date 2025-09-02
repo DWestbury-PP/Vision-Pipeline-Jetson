@@ -278,9 +278,8 @@ class RedisMessageBus(MessageBus):
                                 dtype=frame_package['dtype']
                             ).reshape(frame_package['shape'])
                             
-                            # Call callback in thread pool to avoid blocking
-                            loop = asyncio.get_event_loop()
-                            await loop.run_in_executor(None, callback, frame_data, metadata)
+                            # Call async callback directly
+                            await callback(frame_data, metadata)
                             
                         except Exception as e:
                             log_error_with_context(
