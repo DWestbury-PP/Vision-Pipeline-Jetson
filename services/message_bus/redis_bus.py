@@ -267,7 +267,7 @@ class RedisMessageBus(MessageBus):
                     self.logger.info(f"Got message type: {message.get('type')}, channel: {message.get('channel')}")
                     if message['type'] == 'message' and message['channel'].decode('utf-8') == f"frame:{channel}":
                         try:
-                            self.logger.debug(f"Processing frame from channel frame:{channel}")
+                            self.logger.info(f"Processing frame from channel frame:{channel}")
                             # Deserialize frame package
                             frame_package = pickle.loads(message['data'])
                             
@@ -288,7 +288,9 @@ class RedisMessageBus(MessageBus):
                             ).reshape(frame_package['shape'])
                             
                             # Call async callback directly
+                            self.logger.info(f"Calling callback for frame {metadata.frame_id}")
                             await callback(frame_data, metadata)
+                            self.logger.info(f"Callback completed for frame {metadata.frame_id}")
                             
                         except Exception as e:
                             log_error_with_context(

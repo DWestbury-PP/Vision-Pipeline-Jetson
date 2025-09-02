@@ -48,6 +48,24 @@ fi
 
 echo -e "${GREEN}✅ Virtual environment found${NC}"
 
+# Check if base image exists, build if not
+if ! docker images | grep -q "moondream-base"; then
+    echo -e "${YELLOW}📦 Building base image (first time setup)...${NC}"
+    if [ -f "scripts/build-base.sh" ]; then
+        ./scripts/build-base.sh
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}❌ Failed to build base image${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}✅ Base image built${NC}"
+    else
+        echo -e "${RED}❌ Build script not found: scripts/build-base.sh${NC}"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}✅ Base image exists${NC}"
+fi
+
 # Create logs directory
 mkdir -p logs
 

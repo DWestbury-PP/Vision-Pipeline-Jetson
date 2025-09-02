@@ -206,29 +206,29 @@ class WebSocketHandler:
         )
         
         # Subscribe to detection results
-        await self.subscriber.subscribe_message(
+        await self.subscriber.subscribe_to_messages(
             Channels.YOLO_RESULTS,
             self._handle_yolo_result
         )
         
-        await self.subscriber.subscribe_message(
+        await self.subscriber.subscribe_to_messages(
             Channels.VLM_RESULTS,
             self._handle_vlm_result
         )
         
-        await self.subscriber.subscribe_message(
+        await self.subscriber.subscribe_to_messages(
             Channels.FUSION_RESULTS,
             self._handle_fusion_result
         )
         
         # Subscribe to status updates
-        await self.subscriber.subscribe_message(
+        await self.subscriber.subscribe_to_messages(
             Channels.SYSTEM_STATUS,
             self._handle_status_update
         )
         
         # Subscribe to chat responses
-        await self.subscriber.subscribe_message(
+        await self.subscriber.subscribe_to_messages(
             Channels.CHAT_RESPONSES,
             self._handle_chat_response
         )
@@ -236,11 +236,13 @@ class WebSocketHandler:
     async def _handle_frame_update(self, frame: np.ndarray, metadata: FrameMetadata) -> None:
         """Handle camera frame updates."""
         try:
+            self.logger.info(f"Handling frame update for frame {metadata.frame_id}")
             self.latest_frame = frame
             self.latest_frame_metadata = metadata
             
             # Convert frame to base64 for WebSocket transmission
             frame_url = await self._frame_to_data_url(frame)
+            self.logger.info(f"Converted frame {metadata.frame_id} to data URL")
             
             # Create WebSocket message
             ws_message = WSFrameUpdate(
@@ -249,10 +251,12 @@ class WebSocketHandler:
             )
             
             # Broadcast to clients that want frame updates
+            self.logger.info(f"Broadcasting frame {metadata.frame_id} to WebSocket clients")
             await self.manager.broadcast_filtered(
                 ws_message.model_dump(mode='json'),
                 lambda client_id, settings: settings.get("send_frames", True)
             )
+            self.logger.info(f"Frame {metadata.frame_id} broadcast complete")
             
         except Exception as e:
             log_error_with_context(
