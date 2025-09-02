@@ -1,17 +1,64 @@
 # Moondream Vision Pipeline
 
-A modular, high-performance computer vision pipeline combining YOLO11 object detection with Moondream VLM for comprehensive visual understanding. Built with containerized microservices for scalability and rapid development.
+A modular, high-performance computer vision pipeline combining YOLO11 object detection with Moondream VLM for comprehensive visual understanding. Features a **hybrid architecture** that leverages containerized microservices for reliability while running ML models natively for Apple Silicon GPU acceleration.
 
-## 🚀 Architecture Overview
+## 🚀 Hybrid Architecture
 
-This solution provides a scalable, containerized pipeline that:
-- **Modular Camera Capture**: Architecture-specific camera adapters (Mac Studio, Jetson, USB)
-- **High-Performance Message Bus**: Redis pub/sub for low-latency image distribution
-- **Multiple CV/VLM Subscribers**: YOLO11 for fast detection, Moondream for rich understanding
-- **Professional Web UI**: React frontend with shadcn components, real-time visualization
-- **Chat-Based VLM Interactions**: Natural language queries to the vision system
-- **Horizontal Scaling**: Multiple parallel VLM instances for improved throughput
-- **Fast Development**: Optimized Docker setup with 99.7% faster builds (25s vs 15+ minutes)
+### 📦 **Containerized Services** (Reliability & Scalability)
+- **Redis Message Bus**: High-performance pub/sub for image distribution
+- **FastAPI Backend**: REST API + WebSocket for real-time communication
+- **React Frontend**: Professional UI with shadcn components
+- **Fusion Service**: Combines results from multiple AI models
+
+### 🖥️ **Native Services** (Apple Silicon GPU Performance)
+- **YOLO11**: Object detection with Metal Performance Shaders acceleration
+- **Moondream VLM**: Vision-language model using existing CLI for GPU access
+- **Camera Capture**: Direct hardware access for optimal performance
+
+### ⚡ **Benefits**
+- **Best Performance**: Native ML models access Apple Silicon GPU (MPS)
+- **Reliable Infrastructure**: Containerized message bus and API services
+- **Fast Development**: Optimized Docker builds (25s vs 15+ minutes)
+- **Easy Deployment**: Single script starts entire hybrid stack
+
+## 🚀 Quick Start (Hybrid Architecture)
+
+### Prerequisites
+- **Docker Desktop** (for containerized services)
+- **Moondream CLI** installed and accessible via `moondream` command
+- **Python 3** (for native services)
+
+### One-Command Startup
+```bash
+# Start the entire hybrid stack
+./scripts/start-hybrid.sh
+```
+
+This will:
+1. ✅ Build and start containerized services (Redis, API, Frontend, Fusion)
+2. ✅ Create Python virtual environment for YOLO11
+3. ✅ Start native YOLO11 service with Apple Silicon GPU
+4. ✅ Start native Moondream service using your existing CLI
+5. ✅ Provide access URLs and management commands
+
+### Access Points
+- **Frontend UI**: http://localhost:3000
+- **API Documentation**: http://localhost:8000/docs
+- **WebSocket API**: ws://localhost:8001
+
+### Manual Service Management
+```bash
+# Start individual containerized services
+./scripts/compose.sh up redis api frontend fusion -d
+
+# Start native services separately
+./scripts/start-native-yolo.sh      # YOLO11 with Apple Silicon GPU
+./scripts/start-native-moondream.sh # Moondream using existing CLI
+
+# View logs
+docker-compose logs api --follow    # Container logs
+tail -f /tmp/yolo_native.log       # Native service logs
+```
 
 ## 🏗️ Components
 
