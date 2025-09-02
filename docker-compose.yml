@@ -1,4 +1,8 @@
 # Fast development Docker Compose using optimized base images
+# Note: This compose file requires DOCKER_BUILDKIT=0 to properly resolve local base images
+# Use: DOCKER_BUILDKIT=0 docker-compose up --build
+# Or use: ./scripts/fast-dev.sh (which sets this automatically)
+
 services:
   # Redis message bus
   redis:

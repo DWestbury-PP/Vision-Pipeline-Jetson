@@ -35,10 +35,10 @@ This solution provides a scalable, containerized pipeline that:
 ### Fast Development Setup
 
 ```bash
-# 1. Build optimized base image (one-time, ~1 minute)
+# 1. Build optimized base image (one-time, ~4 minutes)
 ./scripts/build-base.sh
 
-# 2. Start development environment (25 seconds)
+# 2. Start development environment (20 seconds)
 ./scripts/fast-dev.sh
 
 # 3. Access the applications
@@ -51,6 +51,12 @@ open http://localhost:8000/docs  # API Documentation
 ```bash
 # Start specific services for testing
 ./scripts/fast-dev.sh redis api frontend --build -d
+
+# Alternative: Use docker-compose directly
+./scripts/compose.sh up redis api frontend --build -d
+
+# Or with BuildKit disabled manually:
+DOCKER_BUILDKIT=0 docker-compose up redis api frontend --build -d
 
 # View logs
 docker-compose logs api --follow
