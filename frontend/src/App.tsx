@@ -78,7 +78,7 @@ function App() {
   // WebSocket connection
   useEffect(() => {
     const connectWebSocket = () => {
-      const wsUrl = `ws://localhost:8001/ws/${Date.now()}`;
+      const wsUrl = `ws://localhost:8000/ws/${Date.now()}`;
       const ws = new WebSocket(wsUrl);
       
       ws.onopen = () => {
