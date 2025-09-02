@@ -211,7 +211,7 @@ class RedisMessageBus(MessageBus):
                                 }
                                 
                                 message_class = message_classes.get(message_type, BusMessage)
-                                parsed_message = message_class.parse_obj(message_data)
+                                parsed_message = message_class.model_validate(message_data)
                                 
                                 # Call callback in thread pool to avoid blocking
                                 loop = asyncio.get_event_loop()
@@ -263,7 +263,7 @@ class RedisMessageBus(MessageBus):
                             frame_package = pickle.loads(message['data'])
                             
                             # Extract metadata
-                            metadata = FrameMetadata.parse_obj(frame_package['metadata'])
+                            metadata = FrameMetadata.model_validate(frame_package['metadata'])
                             
                             # Reconstruct frame data
                             frame_bytes = frame_package['frame_data']
