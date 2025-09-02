@@ -206,29 +206,29 @@ class WebSocketHandler:
         )
         
         # Subscribe to detection results
-        await self.subscriber.subscribe_to_messages(
+        await self.subscriber.subscribe_message(
             Channels.YOLO_RESULTS,
             self._handle_yolo_result
         )
         
-        await self.subscriber.subscribe_to_messages(
+        await self.subscriber.subscribe_message(
             Channels.VLM_RESULTS,
             self._handle_vlm_result
         )
         
-        await self.subscriber.subscribe_to_messages(
+        await self.subscriber.subscribe_message(
             Channels.FUSION_RESULTS,
             self._handle_fusion_result
         )
         
         # Subscribe to status updates
-        await self.subscriber.subscribe_to_messages(
+        await self.subscriber.subscribe_message(
             Channels.SYSTEM_STATUS,
             self._handle_status_update
         )
         
         # Subscribe to chat responses
-        await self.subscriber.subscribe_to_messages(
+        await self.subscriber.subscribe_message(
             Channels.CHAT_RESPONSES,
             self._handle_chat_response
         )

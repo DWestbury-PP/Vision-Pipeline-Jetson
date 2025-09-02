@@ -127,9 +127,11 @@ export CAMERA_HEIGHT=720
 export CAMERA_FPS=30
 export CAMERA_FRAME_SKIP=1
 
+# Add a small delay to ensure camera is ready
+sleep 2
 python3 services/native/camera_native.py > logs/camera_native.log 2>&1 &
 CAMERA_PID=$!
-sleep 3
+sleep 5
 
 # Verify Camera started
 if ps -p $CAMERA_PID > /dev/null; then

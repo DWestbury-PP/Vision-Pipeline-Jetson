@@ -6,7 +6,7 @@ import pickle
 import gzip
 from typing import Callable, Any, Optional, Dict
 import numpy as np
-import redis.asyncio as redis
+import redis.asyncio as aioredis
 from redis.asyncio.client import PubSub
 
 from .base import MessageBus
@@ -21,8 +21,9 @@ class RedisMessageBus(MessageBus):
     def __init__(self):
         self.config = get_config()
         self.logger = setup_logging("redis_bus")
-        self.redis_client: Optional[redis.Redis] = None
+        self.redis_client: Optional[aioredis.Redis] = None
         self.pubsub: Optional[PubSub] = None
+        self.frame_pubsub: Optional[PubSub] = None  # Separate pubsub for frames
         self.subscriptions: Dict[str, asyncio.Task] = {}
         self._connected = False
         
@@ -33,7 +34,7 @@ class RedisMessageBus(MessageBus):
     async def connect(self) -> None:
         """Connect to Redis."""
         try:
-            self.redis_client = redis.Redis(
+            self.redis_client = aioredis.Redis(
                 host=self.config.redis_host,
                 port=self.config.redis_port,
                 password=self.config.redis_password,
@@ -48,6 +49,7 @@ class RedisMessageBus(MessageBus):
             # Test connection
             await self.redis_client.ping()
             self.pubsub = self.redis_client.pubsub()
+            self.frame_pubsub = self.redis_client.pubsub()  # Separate for frames
             self._connected = True
             
             self.logger.info(
@@ -59,7 +61,7 @@ class RedisMessageBus(MessageBus):
             log_error_with_context(
                 self.logger,
                 e,
-                {"redis_host": self.config.redis.host, "redis_port": self.config.redis.port},
+                {"redis_host": self.config.redis_host, "redis_port": self.config.redis_port},
                 "redis_connect"
             )
             raise
@@ -80,6 +82,10 @@ class RedisMessageBus(MessageBus):
             if self.pubsub:
                 await self.pubsub.close()
                 self.pubsub = None
+                
+            if self.frame_pubsub:
+                await self.frame_pubsub.close()
+                self.frame_pubsub = None
                 
             if self.redis_client:
                 await self.redis_client.close()
@@ -253,12 +259,15 @@ class RedisMessageBus(MessageBus):
             raise RuntimeError("Not connected to Redis")
             
         try:
-            await self.pubsub.subscribe(f"frame:{channel}")
+            await self.frame_pubsub.subscribe(f"frame:{channel}")
             
             async def frame_handler():
-                async for message in self.pubsub.listen():
+                self.logger.info(f"Frame handler started for channel frame:{channel}")
+                async for message in self.frame_pubsub.listen():
+                    self.logger.info(f"Got message type: {message.get('type')}, channel: {message.get('channel')}")
                     if message['type'] == 'message' and message['channel'].decode('utf-8') == f"frame:{channel}":
                         try:
+                            self.logger.debug(f"Processing frame from channel frame:{channel}")
                             # Deserialize frame package
                             frame_package = pickle.loads(message['data'])
                             

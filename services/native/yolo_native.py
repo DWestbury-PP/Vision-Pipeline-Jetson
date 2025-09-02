@@ -224,7 +224,7 @@ class NativeYOLOService:
             
             self.logger.info("Native YOLO service started successfully")
             
-            # Process messages
+            # Process messages in a blocking loop (Redis pubsub is synchronous)
             for message in self.pubsub.listen():
                 if message['type'] == 'message':
                     try:
