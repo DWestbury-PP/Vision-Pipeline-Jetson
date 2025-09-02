@@ -12,6 +12,7 @@ import logging
 import base64
 from pathlib import Path
 from typing import Optional
+from datetime import datetime
 
 # Add the project root to the path
 project_root = Path(__file__).parent.parent.parent
@@ -148,8 +149,8 @@ class NativeCameraService:
                 return True
                 
             # Create frame metadata
-            frame_id = f"frame_{int(time.time() * 1000)}_{self.frames_captured}"
-            timestamp = time.time()
+            frame_id = int(time.time() * 1000000) + self.frames_captured  # Use microseconds + counter for unique int
+            timestamp = datetime.utcnow()
             
             frame_metadata = FrameMetadata(
                 frame_id=frame_id,
@@ -157,7 +158,8 @@ class NativeCameraService:
                 width=frame.shape[1],
                 height=frame.shape[0],
                 channels=frame.shape[2] if len(frame.shape) > 2 else 1,
-                format="BGR"
+                fps=self.config.camera_fps,
+                camera_id=f"camera_{self.config.camera_index}"
             )
             
             # Encode frame as JPEG for efficient transmission
