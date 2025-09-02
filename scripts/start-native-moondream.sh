@@ -47,6 +47,9 @@ echo "   CLI Command: $MOONDREAM_CLI_COMMAND"
 echo "   Frame Stride: $VLM_FRAME_STRIDE (process every ${VLM_FRAME_STRIDE}th frame)"
 echo "   Redis: $REDIS_HOST:$REDIS_PORT"
 
+# Activate virtual environment for dependencies
+source models/yolo11_env/bin/activate
+
 # Start the service
 echo "🎯 Starting Moondream VLM service..."
 python3 services/native/moondream_native.py
