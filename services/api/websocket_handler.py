@@ -250,7 +250,7 @@ class WebSocketHandler:
             
             # Broadcast to clients that want frame updates
             await self.manager.broadcast_filtered(
-                ws_message.dict(),
+                ws_message.model_dump(mode='json'),
                 lambda client_id, settings: settings.get("send_frames", True)
             )
             
@@ -271,7 +271,7 @@ class WebSocketHandler:
             )
             
             await self.manager.broadcast_filtered(
-                ws_message.dict(),
+                ws_message.model_dump(mode='json'),
                 lambda client_id, settings: settings.get("send_detections", True)
             )
             
@@ -292,7 +292,7 @@ class WebSocketHandler:
             )
             
             await self.manager.broadcast_filtered(
-                ws_message.dict(),
+                ws_message.model_dump(mode='json'),
                 lambda client_id, settings: settings.get("send_detections", True)
             )
             
@@ -314,7 +314,7 @@ class WebSocketHandler:
             )
             
             await self.manager.broadcast_filtered(
-                ws_message.dict(),
+                ws_message.model_dump(mode='json'),
                 lambda client_id, settings: settings.get("send_detections", True)
             )
             
@@ -331,7 +331,7 @@ class WebSocketHandler:
             ws_message = WSStatusUpdate(status=message.status)
             
             await self.manager.broadcast_filtered(
-                ws_message.dict(),
+                ws_message.model_dump(mode='json'),
                 lambda client_id, settings: settings.get("send_status", True)
             )
             
@@ -343,7 +343,7 @@ class WebSocketHandler:
         try:
             ws_message = WSChatResponse(chat_response=message.chat_response)
             
-            await self.manager.broadcast(ws_message.dict())
+            await self.manager.broadcast(ws_message.model_dump(mode='json'))
             
         except Exception as e:
             log_error_with_context(self.logger, e, operation="handle_chat_response")
@@ -408,7 +408,7 @@ class WebSocketHandler:
                     WSError(
                         error_code="unknown_message_type",
                         error_message=f"Unknown message type: {message_type}"
-                    ).dict(),
+                    ).model_dump(mode='json'),
                     client_id
                 )
                 
@@ -424,7 +424,7 @@ class WebSocketHandler:
                 WSError(
                     error_code="message_processing_error",
                     error_message="Error processing message"
-                ).dict(),
+                ).model_dump(mode='json'),
                 client_id
             )
     
