@@ -57,6 +57,8 @@ services:
       - YOLO_MODEL=yolo11n.pt
       - YOLO_DEVICE=mps
       - LOG_LEVEL=INFO
+    volumes:
+      - ./models/yolo:/app/models/yolo
     depends_on:
       redis:
         condition: service_healthy
@@ -77,6 +79,8 @@ services:
       - MOONDREAM_DEVICE=mps
       - VLM_FRAME_STRIDE=10
       - LOG_LEVEL=INFO
+    volumes:
+      - ./models/moondream:/app/models/moondream
     depends_on:
       redis:
         condition: service_healthy

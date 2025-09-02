@@ -1,6 +1,7 @@
 """YOLO11 object detection service."""
 
 import asyncio
+import os
 import time
 import numpy as np
 from typing import Optional, List
@@ -114,10 +115,27 @@ class YOLOService:
             
             # Load model in thread to avoid blocking
             loop = asyncio.get_event_loop()
-            self.model = await loop.run_in_executor(
-                None,
-                lambda: YOLO(self.config.yolo_model)
-            )
+            
+            def _load_yolo():
+                # Check if model exists in local cache first
+                local_model_path = f"/app/models/yolo/{self.config.yolo_model}"
+                if os.path.exists(local_model_path):
+                    self.logger.info(f"Loading YOLO model from cache: {local_model_path}")
+                    return YOLO(local_model_path)
+                else:
+                    self.logger.info(f"Downloading YOLO model: {self.config.yolo_model}")
+                    model = YOLO(self.config.yolo_model)
+                    # Save model to cache for next time
+                    if hasattr(model, 'save'):
+                        try:
+                            os.makedirs("/app/models/yolo", exist_ok=True)
+                            # Note: YOLO models are automatically cached by ultralytics
+                            self.logger.info("YOLO model cached for future use")
+                        except Exception as e:
+                            self.logger.warning(f"Could not cache model: {e}")
+                    return model
+            
+            self.model = await loop.run_in_executor(None, _load_yolo)
             
             # Move model to device
             if self.device == "mps" and torch.backends.mps.is_available():

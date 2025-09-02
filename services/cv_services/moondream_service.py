@@ -1,6 +1,7 @@
 """Moondream VLM service with parallel instance support."""
 
 import asyncio
+import os
 import time
 import numpy as np
 from typing import Optional, List, Dict, Any, Union
@@ -40,15 +41,20 @@ class MoondreamInstance:
             loop = asyncio.get_event_loop()
             
             def _load():
+                # Use local cache directory if available
+                cache_dir = "/app/models/moondream" if os.path.exists("/app/models/moondream") else None
+                
                 model = AutoModelForCausalLM.from_pretrained(
                     self.config.moondream_model,
                     trust_remote_code=True,
                     torch_dtype=torch.float16 if self.device != "cpu" else torch.float32,
-                    device_map=None  # We'll handle device placement manually
+                    device_map=None,  # We'll handle device placement manually
+                    cache_dir=cache_dir
                 )
                 tokenizer = AutoTokenizer.from_pretrained(
                     self.config.moondream_model,
-                    trust_remote_code=True
+                    trust_remote_code=True,
+                    cache_dir=cache_dir
                 )
                 return model, tokenizer
             

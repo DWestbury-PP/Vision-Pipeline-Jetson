@@ -66,6 +66,8 @@ logs/
 
 # Model files and data
 models/
+!models/README.md
+!models/*/README.md
 data/
 *.weights
 *.pt
