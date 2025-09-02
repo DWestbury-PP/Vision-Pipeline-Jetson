@@ -312,7 +312,7 @@ class FusionService:
             self.fused_results_count += 1
             
             # Log performance metrics
-            if (self.config.pipeline.enable_performance_metrics and 
+            if (self.config.enable_performance_metrics and 
                 self.fused_results_count % 10 == 0):
                 avg_fusion_time = self.total_fusion_time / self.fused_results_count
                 log_performance_metrics(

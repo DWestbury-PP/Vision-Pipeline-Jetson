@@ -28,7 +28,7 @@ class MoondreamInstance:
         self.logger = logger
         self.model = None
         self.tokenizer = None
-        self.device = config.moondream.device
+        self.device = config.moondream_device
         self.is_loaded = False
         
     async def load_model(self) -> None:
@@ -41,13 +41,13 @@ class MoondreamInstance:
             
             def _load():
                 model = AutoModelForCausalLM.from_pretrained(
-                    self.config.moondream.model,
+                    self.config.moondream_model,
                     trust_remote_code=True,
                     torch_dtype=torch.float16 if self.device != "cpu" else torch.float32,
                     device_map=None  # We'll handle device placement manually
                 )
                 tokenizer = AutoTokenizer.from_pretrained(
-                    self.config.moondream.model,
+                    self.config.moondream_model,
                     trust_remote_code=True
                 )
                 return model, tokenizer
@@ -72,7 +72,7 @@ class MoondreamInstance:
             log_error_with_context(
                 self.logger,
                 e,
-                {"instance_id": self.instance_id, "model": self.config.moondream.model},
+                {"instance_id": self.instance_id, "model": self.config.moondream_model},
                 "model_loading"
             )
             raise
@@ -237,7 +237,7 @@ class MoondreamService:
         self.chat_requests_processed = 0
         
         # Frame processing control
-        self.frame_stride = self.config.moondream.frame_stride
+        self.frame_stride = self.config.moondream_frame_stride
         self.frame_counter = 0
         
     async def start(self) -> None:
@@ -269,9 +269,9 @@ class MoondreamService:
             self.logger.info(
                 "Moondream service started successfully",
                 extra={
-                    "model": self.config.moondream.model,
+                    "model": self.config.moondream_model,
                     "instances": len(self.instances),
-                    "device": self.config.moondream.device,
+                    "device": self.config.moondream_device,
                     "frame_stride": self.frame_stride
                 }
             )
@@ -304,7 +304,7 @@ class MoondreamService:
     async def _load_instances(self) -> None:
         """Load multiple Moondream instances."""
         try:
-            num_instances = self.config.moondream.instances
+            num_instances = self.config.moondream_instances
             self.logger.info(f"Loading {num_instances} Moondream instances")
             
             # Create instances
@@ -327,7 +327,7 @@ class MoondreamService:
             log_error_with_context(
                 self.logger,
                 e,
-                {"num_instances": self.config.moondream.instances},
+                {"num_instances": self.config.moondream_instances},
                 "load_instances"
             )
             raise
@@ -391,7 +391,7 @@ class MoondreamService:
                     objects=[obj.class_name for obj in objects],
                     bounding_boxes=objects,
                     processing_time_ms=processing_time,
-                    model_name=f"moondream_{self.config.moondream.model}",
+                    model_name=f"moondream_{self.config.moondream_model}",
                     timestamp=metadata.timestamp,
                     confidence=0.8  # Placeholder confidence
                 )
@@ -417,7 +417,7 @@ class MoondreamService:
                         "vlm_inference",
                         processing_time,
                         frame_id=metadata.frame_id,
-                        model_name=f"moondream_{self.config.moondream.model}",
+                        model_name=f"moondream_{self.config.moondream_model}",
                         instance_id=instance.instance_id,
                         avg_processing_time=avg_processing_time,
                         caption_length=len(caption),
@@ -453,7 +453,7 @@ class MoondreamService:
             chat_response = ChatResponse(
                 response=response_text,
                 processing_time_ms=processing_time,
-                model_name=f"moondream_{self.config.moondream.model}",
+                model_name=f"moondream_{self.config.moondream_model}",
                 frame_id=chat_request.frame_id
             )
             
@@ -472,7 +472,7 @@ class MoondreamService:
                 self.logger,
                 "chat_response",
                 processing_time,
-                model_name=f"moondream_{self.config.moondream.model}",
+                model_name=f"moondream_{self.config.moondream_model}",
                 message_length=len(chat_request.message),
                 response_length=len(response_text)
             )
@@ -511,8 +511,8 @@ class MoondreamService:
             
             return {
                 "service_name": "moondream_service",
-                "model": self.config.moondream.model,
-                "device": self.config.moondream.device,
+                "model": self.config.moondream_model,
+                "device": self.config.moondream_device,
                 "instances": len(self.instances),
                 "is_running": self.is_running,
                 "frames_processed": self.frames_processed,

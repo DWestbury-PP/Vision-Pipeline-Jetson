@@ -26,7 +26,7 @@ class YOLOService:
         
         # YOLO model
         self.model: Optional[YOLO] = None
-        self.device = self.config.yolo.device
+        self.device = self.config.yolo_device
         
         # Message bus
         self.message_bus = RedisMessageBus()
@@ -43,7 +43,7 @@ class YOLOService:
         self.last_frame_time = 0
         
         # Frame processing control
-        self.frame_stride = self.config.yolo.frame_stride
+        self.frame_stride = self.config.yolo_frame_stride
         self.frame_counter = 0
         
     async def start(self) -> None:
@@ -69,9 +69,9 @@ class YOLOService:
             self.logger.info(
                 "YOLO service started successfully",
                 extra={
-                    "model": self.config.yolo.model,
+                    "model": self.config.yolo_model,
                     "device": self.device,
-                    "confidence": self.config.yolo.confidence,
+                    "confidence": self.config.yolo_confidence,
                     "frame_stride": self.frame_stride
                 }
             )
@@ -110,13 +110,13 @@ class YOLOService:
     async def _load_model(self) -> None:
         """Load the YOLO model."""
         try:
-            self.logger.info(f"Loading YOLO model: {self.config.yolo.model}")
+            self.logger.info(f"Loading YOLO model: {self.config.yolo_model}")
             
             # Load model in thread to avoid blocking
             loop = asyncio.get_event_loop()
             self.model = await loop.run_in_executor(
                 None,
-                lambda: YOLO(self.config.yolo.model)
+                lambda: YOLO(self.config.yolo_model)
             )
             
             # Move model to device
@@ -143,7 +143,7 @@ class YOLOService:
             log_error_with_context(
                 self.logger,
                 e,
-                {"model_path": self.config.yolo.model, "device": self.device},
+                {"model_path": self.config.yolo_model, "device": self.device},
                 "model_loading"
             )
             raise
@@ -179,7 +179,7 @@ class YOLOService:
                 detection_result = DetectionResult(
                     bounding_boxes=bounding_boxes,
                     processing_time_ms=processing_time,
-                    model_name=f"yolo11_{self.config.yolo.model}",
+                    model_name=f"yolo11_{self.config.yolo_model}",
                     timestamp=metadata.timestamp
                 )
                 
@@ -204,7 +204,7 @@ class YOLOService:
                         "yolo_inference",
                         processing_time,
                         frame_id=metadata.frame_id,
-                        model_name=f"yolo11_{self.config.yolo.model}",
+                        model_name=f"yolo11_{self.config.yolo_model}",
                         detections_count=len(bounding_boxes),
                         avg_processing_time=avg_processing_time
                     )
@@ -222,7 +222,7 @@ class YOLOService:
         try:
             results = self.model.predict(
                 frame,
-                conf=self.config.yolo.confidence,
+                conf=self.config.yolo_confidence,
                 verbose=False,
                 device=self.device
             )
@@ -281,12 +281,12 @@ class YOLOService:
             
             return {
                 "service_name": "yolo_service",
-                "model": self.config.yolo.model,
+                "model": self.config.yolo_model,
                 "device": self.device,
                 "is_running": self.is_running,
                 "frames_processed": self.frames_processed,
                 "average_processing_time_ms": avg_processing_time,
-                "confidence_threshold": self.config.yolo.confidence,
+                "confidence_threshold": self.config.yolo_confidence,
                 "frame_stride": self.frame_stride,
                 "model_classes": len(self.model.names) if self.model else 0
             }
@@ -298,7 +298,7 @@ class YOLOService:
         """Update confidence threshold."""
         try:
             if 0.0 <= confidence <= 1.0:
-                self.config.yolo.confidence = confidence
+                self.config.yolo_confidence = confidence
                 self.logger.info(
                     f"Updated confidence threshold to {confidence}",
                     extra={"confidence": confidence}

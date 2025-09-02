@@ -22,13 +22,13 @@ class MacStudioCamera(StreamingCameraInterface):
         self.config = get_config()
         self.cap: Optional[cv2.VideoCapture] = None
         self._last_frame_time = 0
-        self._target_fps = self.config.camera.fps
+        self._target_fps = self.config.camera_fps
         self._frame_interval = 1.0 / self._target_fps
         
         # Camera settings
-        self.width = self.config.camera.width
-        self.height = self.config.camera.height
-        self.camera_index = self.config.camera.index
+        self.width = self.config.camera_width
+        self.height = self.config.camera_height
+        self.camera_index = self.config.camera_index
         
     async def initialize(self, **kwargs) -> bool:
         """Initialize the Mac Studio Display camera.

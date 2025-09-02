@@ -5,6 +5,7 @@ import time
 from typing import Optional
 
 from .base import CameraFactory
+from . import mac_studio  # Register camera implementations
 from ..message_bus.redis_bus import RedisMessageBus
 from ..message_bus.base import MessageBusPublisher, Channels
 from ..shared.models import SystemStatus, StatusMessage
@@ -21,8 +22,8 @@ class CameraService:
         
         # Initialize camera
         self.camera = CameraFactory.create_camera(
-            self.config.camera.type,
-            f"{self.config.camera.type}_{self.config.camera.index}"
+            self.config.camera_type,
+            f"{self.config.camera_type}_{self.config.camera_index}"
         )
         
         # Initialize message bus
@@ -50,10 +51,10 @@ class CameraService:
             
             # Initialize camera
             camera_init_params = {
-                'width': self.config.camera.width,
-                'height': self.config.camera.height,
-                'fps': self.config.camera.fps,
-                'index': self.config.camera.index
+                'width': self.config.camera_width,
+                'height': self.config.camera_height,
+                'fps': self.config.camera_fps,
+                'index': self.config.camera_index
             }
             
             if not await self.camera.initialize(**camera_init_params):
@@ -71,9 +72,9 @@ class CameraService:
             self.logger.info(
                 "Camera service started successfully",
                 extra={
-                    "camera_type": self.config.camera.type,
-                    "resolution": f"{self.config.camera.width}x{self.config.camera.height}",
-                    "fps": self.config.camera.fps
+                    "camera_type": self.config.camera_type,
+                    "resolution": f"{self.config.camera_width}x{self.config.camera_height}",
+                    "fps": self.config.camera_fps
                 }
             )
             
@@ -233,7 +234,7 @@ class CameraService:
             capabilities = self.camera.get_capabilities()
             return {
                 "camera_id": self.camera.camera_id,
-                "camera_type": self.config.camera.type,
+                "camera_type": self.config.camera_type,
                 "is_active": self.camera.is_active,
                 "frames_captured": self.frames_captured,
                 "capabilities": capabilities
