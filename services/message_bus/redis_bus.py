@@ -34,10 +34,10 @@ class RedisMessageBus(MessageBus):
         """Connect to Redis."""
         try:
             self.redis_client = redis.Redis(
-                host=self.config.redis.host,
-                port=self.config.redis.port,
-                password=self.config.redis.password,
-                db=self.config.redis.db,
+                host=self.config.redis_host,
+                port=self.config.redis_port,
+                password=self.config.redis_password,
+                db=self.config.redis_db,
                 decode_responses=False,  # We handle binary data
                 socket_connect_timeout=5,
                 socket_timeout=5,
@@ -51,8 +51,8 @@ class RedisMessageBus(MessageBus):
             self._connected = True
             
             self.logger.info(
-                f"Connected to Redis at {self.config.redis.host}:{self.config.redis.port}",
-                extra={"redis_host": self.config.redis.host, "redis_port": self.config.redis.port}
+                f"Connected to Redis at {self.config.redis_host}:{self.config.redis_port}",
+                extra={"redis_host": self.config.redis_host, "redis_port": self.config.redis_port}
             )
             
         except Exception as e:

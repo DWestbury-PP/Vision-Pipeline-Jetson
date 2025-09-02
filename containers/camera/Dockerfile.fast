@@ -1,0 +1,16 @@
+# Fast camera service build using optimized base
+FROM moondream-base:latest
+
+# Switch back to root to copy files (then switch back to appuser)
+USER root
+
+# Copy application code
+COPY services/ ./services/
+COPY env.example .env
+
+# Set ownership and switch back to non-root user
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# Run the camera service
+CMD ["python", "-m", "services.camera.camera_service"]

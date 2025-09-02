@@ -1,0 +1,51 @@
+# Optimized base image for Moondream Vision Pipeline
+FROM python:3.11-slim
+
+# Set environment variables for non-interactive apt
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Install system dependencies in a single layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # OpenCV and graphics dependencies
+    libgl1-mesa-dev \
+    libgl1-mesa-dri \
+    libglib2.0-0 \
+    libgomp1 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgstreamer1.0-0 \
+    libopencv-dev \
+    python3-opencv \
+    # Build tools (if needed)
+    build-essential \
+    pkg-config \
+    # Clean up to reduce image size
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* \
+    && rm -rf /var/tmp/*
+
+# Set display for headless OpenCV
+ENV DISPLAY=:99
+
+# Create app directory
+WORKDIR /app
+
+# Copy and install Python requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt \
+    # Clean pip cache
+    && pip cache purge
+
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# This base image is ready for our application code
+LABEL maintainer="Moondream Vision Pipeline"
+LABEL description="Optimized base image with all system dependencies and Python packages"

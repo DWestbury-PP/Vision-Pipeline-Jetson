@@ -393,7 +393,7 @@ class MoondreamAPI:
         """Start the API and WebSocket handler."""
         try:
             await self.websocket_handler.start()
-            self.logger.info(f"API server starting on {self.config.api.host}:{self.config.api.port}")
+            self.logger.info(f"API server starting on {self.config.api_host}:{self.config.api_port}")
         except Exception as e:
             log_error_with_context(self.logger, e, operation="api_start")
             raise
@@ -433,8 +433,8 @@ async def run_api_server():
         # Run the server
         config_obj = uvicorn.Config(
             api.app,
-            host=config.api.host,
-            port=config.api.port,
+                    host=config.api_host,
+        port=config.api_port,
             log_level="info",
             access_log=False  # We handle logging ourselves
         )

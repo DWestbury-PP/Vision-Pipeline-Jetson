@@ -92,12 +92,12 @@ def setup_logging(component: str = "moondream-vision") -> ComponentLoggerAdapter
             "console": {
                 "class": "logging.StreamHandler",
                 "stream": sys.stdout,
-                "formatter": config.logging.format,
-                "level": config.logging.level,
+                "formatter": config.log_format,
+                "level": config.log_level,
             },
         },
         "root": {
-            "level": config.logging.level,
+            "level": config.log_level,
             "handlers": ["console"],
         },
         "loggers": {
