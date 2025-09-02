@@ -15,15 +15,11 @@ fi
 
 echo "✅ Base image found"
 
-# Use the fast docker-compose file with legacy builder
+# Use legacy builder for fast builds with base images
 echo "🔧 Building services with fast builds..."
 
 # Stop any existing services
 docker-compose down 2>/dev/null || true
-docker-compose -f docker-compose.fast.yml down 2>/dev/null || true
 
-# Update Dockerfile to use the working version
-cp containers/api/Dockerfile.fast2 containers/api/Dockerfile.fast
-
-# Build and start services
-docker-compose -f docker-compose.fast.yml up "$@"
+# Build and start services using the main docker-compose.yml
+docker-compose up "$@"
