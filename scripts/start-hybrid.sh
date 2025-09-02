@@ -55,8 +55,8 @@ echo ""
 echo "⏳ Waiting for services to be ready..."
 sleep 5
 
-# Check if Redis is accessible
-if ! redis-cli ping > /dev/null 2>&1; then
+# Check if Redis is accessible (using docker exec since redis-cli may not be installed on host)
+if ! docker exec moondream-redis redis-cli ping > /dev/null 2>&1; then
     echo "❌ Redis is not accessible. Check container logs:"
     echo "   docker-compose logs redis"
     exit 1

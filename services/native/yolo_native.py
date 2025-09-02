@@ -20,7 +20,7 @@ import numpy as np
 import redis
 import torch
 from ultralytics import YOLO
-from pydantic import BaseSettings, Field
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 # Import shared models from the containerized services

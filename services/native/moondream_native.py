@@ -20,7 +20,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 import redis
-from pydantic import BaseSettings, Field
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 # Import shared models from the containerized services

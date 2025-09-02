@@ -14,9 +14,13 @@ fi
 # Activate virtual environment
 source models/yolo11_env/bin/activate
 
-# Check if Redis is running
-if ! redis-cli ping > /dev/null 2>&1; then
-    echo "❌ Redis is not running. Please start Redis first:"
+# Check if Redis is running (try docker container first, then native)
+if docker exec moondream-redis redis-cli ping > /dev/null 2>&1; then
+    echo "✅ Redis found in Docker container"
+elif command -v redis-cli >/dev/null 2>&1 && redis-cli ping > /dev/null 2>&1; then
+    echo "✅ Redis found running natively"
+else
+    echo "❌ Redis is not accessible. Please start Redis first:"
     echo "   docker-compose up redis -d"
     echo "   OR start Redis natively"
     exit 1
