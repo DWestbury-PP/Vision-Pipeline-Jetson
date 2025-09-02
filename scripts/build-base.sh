@@ -12,7 +12,10 @@ if [ $? -eq 0 ]; then
     docker images moondream-base:latest
     echo ""
     echo "🚀 You can now use fast builds with:"
-    echo "   docker-compose -f docker-compose.fast.yml up --build"
+    echo "   ./scripts/fast-dev.sh"
+    echo ""
+    echo "   Or directly with docker-compose:"
+    echo "   docker-compose up --build"
     echo ""
     echo "⚡ Fast rebuilds will now take seconds instead of minutes!"
 else

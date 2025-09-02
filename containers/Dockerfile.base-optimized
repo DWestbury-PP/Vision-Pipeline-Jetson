@@ -35,7 +35,7 @@ ENV DISPLAY=:99
 WORKDIR /app
 
 # Copy and install Python requirements
-COPY requirements.txt .
+COPY containers/requirements-base.txt requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     # Clean pip cache
