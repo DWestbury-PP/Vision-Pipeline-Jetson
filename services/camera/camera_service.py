@@ -145,7 +145,7 @@ class CameraService:
                 
                 # Log performance metrics periodically
                 processing_time = (time.perf_counter() - start_time) * 1000
-                if (self.config.pipeline.enable_performance_metrics and 
+                if (self.config.enable_performance_metrics and 
                     self.frames_captured % 30 == 0):
                     log_performance_metrics(
                         self.logger,

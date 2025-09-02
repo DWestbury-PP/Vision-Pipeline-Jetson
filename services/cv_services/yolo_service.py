@@ -196,7 +196,7 @@ class YOLOService:
                 )
                 
                 # Log performance metrics
-                if (self.config.pipeline.enable_performance_metrics and 
+                if (self.config.enable_performance_metrics and 
                     self.frames_processed % 10 == 0):
                     avg_processing_time = self.total_processing_time / self.frames_processed
                     log_performance_metrics(

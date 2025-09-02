@@ -140,7 +140,7 @@ class MacStudioCamera(StreamingCameraInterface):
             processing_time = (time.perf_counter() - start_time) * 1000
             
             # Log performance metrics
-            if self.config.pipeline.enable_performance_metrics and frame_id % 30 == 0:
+            if self.config.enable_performance_metrics and frame_id % 30 == 0:
                 log_performance_metrics(
                     self.logger,
                     "frame_capture",
