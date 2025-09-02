@@ -10,6 +10,7 @@ import sys
 import time
 import logging
 import json
+import pickle
 import subprocess
 import tempfile
 from pathlib import Path
@@ -26,7 +27,7 @@ from pydantic_settings import BaseSettings
 # Import shared models from the containerized services
 from services.shared.models import (
     FrameMetadata, BoundingBox, VLMResult, 
-    VLMMessage, FrameMessage, ChatRequest, ChatResponse
+    VLMMessage, FrameMessage, ChatRequestMessage, ChatResponseMessage
 )
 
 
@@ -106,7 +107,7 @@ class NativeMoondreamService:
                 host=self.config.redis_host,
                 port=self.config.redis_port,
                 password=self.config.redis_password,
-                decode_responses=True
+                decode_responses=False  # Need binary data for frames
             )
             
             # Test connection
@@ -115,13 +116,13 @@ class NativeMoondreamService:
             
             # Setup pub/sub for frames
             self.frame_pubsub = self.redis_client.pubsub()
-            self.frame_pubsub.subscribe("camera.frames")
-            self.logger.info("Subscribed to camera.frames channel")
+            self.frame_pubsub.subscribe("frame:camera.frames")
+            self.logger.info("Subscribed to frame:camera.frames channel")
             
             # Setup pub/sub for chat requests
             self.chat_pubsub = self.redis_client.pubsub()
-            self.chat_pubsub.subscribe("chat.requests")
-            self.logger.info("Subscribed to chat.requests channel")
+            self.chat_pubsub.subscribe("msg:chat.requests")
+            self.logger.info("Subscribed to msg:chat.requests channel")
             
         except Exception as e:
             self.logger.error(f"Failed to connect to Redis: {e}")
@@ -223,13 +224,13 @@ class NativeMoondreamService:
             self.logger.error(f"Error processing frame: {e}")
             return None
             
-    def process_chat_request(self, chat_data: dict) -> Optional[ChatResponse]:
+    def process_chat_request(self, chat_data: dict) -> Optional[ChatResponseMessage]:
         """Process a chat request with Moondream."""
         try:
             start_time = time.perf_counter()
             
             # Parse chat request
-            chat_request = ChatRequest(**chat_data)
+            chat_request = ChatRequestMessage(**chat_data)
             
             # Create temporary image file if image is provided
             tmp_path = None
@@ -250,7 +251,7 @@ class NativeMoondreamService:
                     processing_time = (time.perf_counter() - start_time) * 1000
                     self.chat_requests_processed += 1
                     
-                    chat_response = ChatResponse(
+                    chat_response = ChatResponseMessage(
                         request_id=chat_request.request_id,
                         response=response_text,
                         processing_time_ms=processing_time,
@@ -282,7 +283,7 @@ class NativeMoondreamService:
         except Exception as e:
             self.logger.error(f"Failed to publish VLM result: {e}")
             
-    def publish_chat_response(self, chat_response: ChatResponse):
+    def publish_chat_response(self, chat_response: ChatResponseMessage):
         """Publish chat response to Redis."""
         try:
             message_dict = chat_response.model_dump()

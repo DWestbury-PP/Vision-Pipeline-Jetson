@@ -9,6 +9,8 @@ import os
 import sys
 import time
 import logging
+import pickle
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -117,7 +119,7 @@ class NativeYOLOService:
                 host=self.config.redis_host,
                 port=self.config.redis_port,
                 password=self.config.redis_password,
-                decode_responses=True
+                decode_responses=False  # Need binary data for frames
             )
             
             # Test connection
@@ -126,31 +128,28 @@ class NativeYOLOService:
             
             # Setup pub/sub
             self.pubsub = self.redis_client.pubsub()
-            self.pubsub.subscribe("camera.frames")
-            self.logger.info("Subscribed to camera.frames channel")
+            self.pubsub.subscribe("frame:camera.frames")
+            self.logger.info("Subscribed to frame:camera.frames channel")
             
         except Exception as e:
             self.logger.error(f"Failed to connect to Redis: {e}")
             raise
             
-    def process_frame(self, frame_data: dict) -> Optional[DetectionMessage]:
-        """Process a single frame with YOLO detection."""
+    def process_frame_array(self, frame: np.ndarray, metadata_dict: dict) -> Optional[DetectionMessage]:
+        """Process a single frame array with YOLO detection."""
         try:
             start_time = time.perf_counter()
             
-            # Decode frame metadata
-            frame_metadata = FrameMetadata(**frame_data)
+            # Create frame metadata
+            frame_metadata = FrameMetadata(**metadata_dict)
             
             # Skip frames based on stride
+            self.frames_processed += 1
             if self.frames_processed % self.config.yolo_frame_stride != 0:
                 return None
-                
-            # Get image data (in real implementation, this would decode from Redis)
-            # For now, create a dummy image
-            dummy_image = np.random.randint(0, 255, (640, 640, 3), dtype=np.uint8)
             
-            # Run YOLO inference
-            results = self.model(dummy_image, conf=self.config.yolo_confidence, verbose=False)
+            # Run YOLO inference on the actual frame
+            results = self.model(frame, conf=self.config.yolo_confidence, verbose=False)
             
             # Convert results to our format
             detections = []
@@ -163,29 +162,31 @@ class NativeYOLOService:
                         class_id = int(box.cls[0].cpu().numpy())
                         class_name = self.model.names[class_id]
                         
-                        detection = DetectionResult(
-                            bbox=BoundingBox(
-                                x1=float(x1), y1=float(y1),
-                                x2=float(x2), y2=float(y2)
-                            ),
+                        bbox = BoundingBox(
+                            x1=float(x1), y1=float(y1),
+                            x2=float(x2), y2=float(y2),
                             confidence=confidence,
                             class_name=class_name,
                             class_id=class_id
                         )
-                        detections.append(detection)
+                        detections.append(bbox)
             
             # Create detection message
             processing_time = (time.perf_counter() - start_time) * 1000
             self.total_processing_time += processing_time
             self.frames_processed += 1
             
+            # Create DetectionResult with all bounding boxes
+            detection_result = DetectionResult(
+                bounding_boxes=detections,  # detections is already a list of BoundingBox
+                processing_time_ms=processing_time,
+                model_name="yolo11n"
+            )
+            
             detection_message = DetectionMessage(
                 frame_id=frame_metadata.frame_id,
-                timestamp=frame_metadata.timestamp,
-                detections=detections,
-                processing_time_ms=processing_time,
-                model_name="yolo11n",
-                confidence_threshold=self.config.yolo_confidence
+                result=detection_result,
+                source_service="yolo_native"
             )
             
             # Log performance periodically
@@ -206,8 +207,9 @@ class NativeYOLOService:
     def publish_detection(self, detection_message: DetectionMessage):
         """Publish detection results to Redis."""
         try:
-            message_dict = detection_message.model_dump()
-            self.redis_client.publish("detection.yolo", str(message_dict))
+            import json
+            message_json = json.dumps(detection_message.model_dump(mode='json'))
+            self.redis_client.publish("msg:detection.yolo", message_json.encode('utf-8'))
         except Exception as e:
             self.logger.error(f"Failed to publish detection: {e}")
             
@@ -226,11 +228,21 @@ class NativeYOLOService:
             for message in self.pubsub.listen():
                 if message['type'] == 'message':
                     try:
-                        # Parse frame data
-                        frame_data = eval(message['data'])  # In production, use proper JSON
+                        # Unpickle frame package
+                        import pickle
+                        frame_package = pickle.loads(message['data'])
                         
-                        # Process frame
-                        detection_result = self.process_frame(frame_data)
+                        # Extract frame data and metadata
+                        frame_bytes = frame_package['frame_data']
+                        metadata_dict = frame_package['metadata']
+                        shape = frame_package['shape']
+                        dtype = frame_package['dtype']
+                        
+                        # Reconstruct numpy array
+                        frame = np.frombuffer(frame_bytes, dtype=dtype).reshape(shape)
+                        
+                        # Process frame with YOLO
+                        detection_result = self.process_frame_array(frame, metadata_dict)
                         
                         # Publish results
                         if detection_result:

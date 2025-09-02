@@ -89,7 +89,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
       
       // Draw bounding boxes if enabled
       if (showBoundingBoxes && detectionResult) {
-        drawBoundingBoxes(ctx, detectionResult.bounding_boxes, canvas.width, canvas.height);
+        drawBoundingBoxes(ctx, detectionResult.bounding_boxes, canvas.width, canvas.height, mirrorMode);
       }
     };
     
@@ -100,7 +100,8 @@ export const CameraView: React.FC<CameraViewProps> = ({
     ctx: CanvasRenderingContext2D,
     boxes: BoundingBox[],
     canvasWidth: number,
-    canvasHeight: number
+    canvasHeight: number,
+    mirrorMode: boolean
   ) => {
     if (!frameMetadata) return;
 
@@ -108,10 +109,17 @@ export const CameraView: React.FC<CameraViewProps> = ({
     const scaleY = canvasHeight / frameMetadata.height;
 
     boxes.forEach((box) => {
-      const x = box.x1 * scaleX;
-      const y = box.y1 * scaleY;
-      const width = (box.x2 - box.x1) * scaleX;
-      const height = (box.y2 - box.y1) * scaleY;
+      let x = box.x1 * scaleX;
+      let y = box.y1 * scaleY;
+      let width = (box.x2 - box.x1) * scaleX;
+      let height = (box.y2 - box.y1) * scaleY;
+      
+      // If mirror mode is enabled, flip the x coordinates
+      if (mirrorMode) {
+        // Mirror the bounding box horizontally
+        const mirroredX1 = canvasWidth - (x + width);
+        x = mirroredX1;
+      }
 
       // Draw bounding box
       ctx.strokeStyle = '#00ff00';
