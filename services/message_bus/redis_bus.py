@@ -187,7 +187,7 @@ class RedisMessageBus(MessageBus):
             
             async def message_handler():
                 async for message in self.pubsub.listen():
-                    if message['type'] == 'message':
+                    if message['type'] == 'message' and message['channel'].decode('utf-8') == f"msg:{channel}":
                         try:
                             message_data = json.loads(message['data'].decode('utf-8'))
                             
@@ -257,7 +257,7 @@ class RedisMessageBus(MessageBus):
             
             async def frame_handler():
                 async for message in self.pubsub.listen():
-                    if message['type'] == 'message':
+                    if message['type'] == 'message' and message['channel'].decode('utf-8') == f"frame:{channel}":
                         try:
                             # Deserialize frame package
                             frame_package = pickle.loads(message['data'])
