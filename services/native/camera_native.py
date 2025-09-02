@@ -10,6 +10,7 @@ import sys
 import time
 import logging
 import base64
+import pickle
 from pathlib import Path
 from typing import Optional
 from datetime import datetime
@@ -82,7 +83,7 @@ class NativeCameraService:
                 host=self.config.redis_host,
                 port=self.config.redis_port,
                 password=self.config.redis_password,
-                decode_responses=False  # We need binary data for images
+                decode_responses=False  # We need binary data for pickled frames
             )
             
             # Test connection
@@ -170,15 +171,20 @@ class NativeCameraService:
                 self.logger.warning("Failed to encode frame")
                 return False
                 
-            # Create frame message
-            frame_message = FrameMessage(
-                metadata=frame_metadata,
-                image_data=base64.b64encode(buffer).decode('utf-8')
-            )
+            # Create frame package in the format expected by containerized services
+            frame_package = {
+                'metadata': frame_metadata.model_dump(),
+                'frame_data': frame.tobytes(),
+                'shape': frame.shape,
+                'dtype': str(frame.dtype),
+                'compressed': False
+            }
             
-            # Publish to Redis (use same channel format as containerized services)
-            message_dict = frame_message.model_dump()
-            self.redis_client.publish("frame:camera.frames", str(message_dict))
+            # Serialize package
+            package_data = pickle.dumps(frame_package)
+            
+            # Publish to Redis (use same format as containerized services)
+            self.redis_client.publish("frame:camera.frames", package_data)
             
             self.frames_published += 1
             
