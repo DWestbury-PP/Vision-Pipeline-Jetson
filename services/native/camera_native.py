@@ -176,9 +176,9 @@ class NativeCameraService:
                 image_data=base64.b64encode(buffer).decode('utf-8')
             )
             
-            # Publish to Redis
+            # Publish to Redis (use same channel format as containerized services)
             message_dict = frame_message.model_dump()
-            self.redis_client.publish("camera.frames", str(message_dict))
+            self.redis_client.publish("frame:camera.frames", str(message_dict))
             
             self.frames_published += 1
             
@@ -209,7 +209,7 @@ class NativeCameraService:
             self.initialize_camera()
             
             self.logger.info("Native Camera service started successfully")
-            self.logger.info(f"Publishing frames to 'camera.frames' channel")
+            self.logger.info(f"Publishing frames to 'frame:camera.frames' channel")
             
             # Main capture loop
             while True:
