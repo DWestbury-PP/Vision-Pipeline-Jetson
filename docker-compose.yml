@@ -79,8 +79,8 @@ services:
       - MOONDREAM_DEVICE=mps
       - VLM_FRAME_STRIDE=10
       - LOG_LEVEL=INFO
-    volumes:
-      - ./models/moondream:/app/models/moondream
+    # volumes:
+    #   - moondream_cache:/home/appuser/.cache/huggingface
     depends_on:
       redis:
         condition: service_healthy
@@ -150,6 +150,7 @@ services:
 
 volumes:
   redis_data:
+  moondream_cache:
 
 networks:
   moondream-network:

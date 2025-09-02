@@ -41,20 +41,16 @@ class MoondreamInstance:
             loop = asyncio.get_event_loop()
             
             def _load():
-                # Use local cache directory if available
-                cache_dir = "/app/models/moondream" if os.path.exists("/app/models/moondream") else None
-                
+                # Use default Hugging Face cache directory (bind-mounted to host)
                 model = AutoModelForCausalLM.from_pretrained(
                     self.config.moondream_model,
                     trust_remote_code=True,
                     torch_dtype=torch.float16 if self.device != "cpu" else torch.float32,
-                    device_map=None,  # We'll handle device placement manually
-                    cache_dir=cache_dir
+                    device_map=None  # We'll handle device placement manually
                 )
                 tokenizer = AutoTokenizer.from_pretrained(
                     self.config.moondream_model,
-                    trust_remote_code=True,
-                    cache_dir=cache_dir
+                    trust_remote_code=True
                 )
                 return model, tokenizer
             
