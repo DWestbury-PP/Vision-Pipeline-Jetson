@@ -110,9 +110,9 @@ class NativeMoondreamService:
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_path,
                 trust_remote_code=True,
-                torch_dtype=torch.float16 if self.device.type == "mps" else torch.float32,
-                device_map={"": self.device}
+                torch_dtype=torch.float16 if self.device.type == "mps" else torch.float32
             )
+            self.model = self.model.to(self.device)
             
             self.logger.info("Model loaded successfully!")
             return True
@@ -218,25 +218,25 @@ class NativeMoondreamService:
                 )
                 
                 if description:
-                    # Create VLM result
+                    processing_time = (time.perf_counter() - start_time) * 1000
+                    
+                    # Create VLM result with all required fields
                     vlm_result = VLMResult(
                         description=description,
                         confidence=0.95,
                         detected_objects=[],
-                        bounding_boxes=[]
+                        bounding_boxes=[],
+                        processing_time_ms=processing_time,
+                        model_name="moondream2"
                     )
                     
-                    processing_time = (time.perf_counter() - start_time) * 1000
                     self.total_processing_time += processing_time
-                    self.frames_processed += 1
                     
                     vlm_message = VLMMessage(
                         frame_id=frame_metadata.frame_id,
                         timestamp=frame_metadata.timestamp,
-                        vlm_result=vlm_result,
-                        processing_time_ms=processing_time,
-                        model_name="moondream2",
-                        prompt="Describe this image in detail"
+                        result=vlm_result,
+                        source_service="moondream_native"
                     )
                     
                     # Log performance periodically
@@ -301,16 +301,20 @@ class NativeMoondreamService:
     def publish_vlm_result(self, vlm_message: VLMMessage):
         """Publish VLM results to Redis."""
         try:
-            message_dict = vlm_message.model_dump()
-            self.redis_client.publish("detection.vlm", str(message_dict))
+            import json
+            message_json = json.dumps(vlm_message.model_dump(mode='json'))
+            self.redis_client.publish("msg:detection.vlm", message_json.encode('utf-8'))
+            self.logger.info(f"Published VLM result for frame {vlm_message.frame_id}")
         except Exception as e:
             self.logger.error(f"Failed to publish VLM result: {e}")
             
     def publish_chat_response(self, chat_response: ChatResponseMessage):
         """Publish chat response to Redis."""
         try:
-            message_dict = chat_response.model_dump()
-            self.redis_client.publish("chat.responses", str(message_dict))
+            import json
+            message_json = json.dumps(chat_response.model_dump(mode='json'))
+            self.redis_client.publish("msg:chat.responses", message_json.encode('utf-8'))
+            self.logger.info(f"Published chat response")
         except Exception as e:
             self.logger.error(f"Failed to publish chat response: {e}")
             
