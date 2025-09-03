@@ -200,6 +200,10 @@ class RedisMessageBus(MessageBus):
                             # Reconstruct message object based on type
                             message_type = message_data.get('message_type')
                             if message_type:
+                                # Log chat responses for debugging
+                                if message_type == 'chat_response':
+                                    self.logger.info(f"Received chat_response message on channel {channel}")
+                                
                                 # Import message classes dynamically to avoid circular imports
                                 from ..shared.models import (
                                     DetectionMessage, VLMMessage, ChatRequestMessage,

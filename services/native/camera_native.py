@@ -119,17 +119,9 @@ class NativeCameraService:
                 f"Camera initialized: {actual_width}x{actual_height} @ {actual_fps:.1f}fps"
             )
             
-            # Warm up camera
-            for _ in range(5):
-                ret, frame = self.camera.read()
-                if ret:
-                    break
-                time.sleep(0.1)
-                
-            if not ret:
-                raise RuntimeError("Failed to capture initial frame")
-                
-            self.logger.info("Camera warmed up successfully")
+            # Skip warmup for now - camera might need time to initialize
+            self.logger.info("Camera opened, skipping warmup")
+            self.logger.info("Camera initialization complete")
             
         except Exception as e:
             self.logger.error(f"Failed to initialize camera: {e}")

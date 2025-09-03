@@ -349,9 +349,13 @@ class WebSocketHandler:
     async def _handle_chat_response(self, message: ChatResponseMessage) -> None:
         """Handle chat responses."""
         try:
+            self.logger.info(f"Received chat response: {message.chat_response.response[:100]}...")
+            
             ws_message = WSChatResponse(chat_response=message.chat_response)
             
             await self.manager.broadcast(ws_message.model_dump(mode='json'))
+            
+            self.logger.info("Chat response broadcast to WebSocket clients")
             
         except Exception as e:
             log_error_with_context(self.logger, e, operation="handle_chat_response")
