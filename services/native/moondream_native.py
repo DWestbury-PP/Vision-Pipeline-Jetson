@@ -13,6 +13,7 @@ import json
 import pickle
 import subprocess
 import tempfile
+import numpy as np
 from pathlib import Path
 from typing import Optional, List
 
@@ -157,22 +158,30 @@ class NativeMoondreamService:
             self.logger.error(f"Error calling Moondream CLI: {e}")
             return None
             
-    def process_frame(self, frame_data: dict) -> Optional[VLMMessage]:
-        """Process a single frame with Moondream VLM."""
+    def process_frame_array(self, frame: np.ndarray, metadata_dict: dict) -> Optional[VLMMessage]:
+        """Process a single frame array with Moondream VLM."""
         try:
             start_time = time.perf_counter()
             
-            # Decode frame metadata
-            frame_metadata = FrameMetadata(**frame_data)
+            # Create frame metadata
+            frame_metadata = FrameMetadata(**metadata_dict)
             
             # Skip frames based on stride
+            self.frames_processed += 1
             if self.frames_processed % self.config.vlm_frame_stride != 0:
                 return None
                 
-            # Create temporary image file (in real implementation, decode from Redis)
+            # Convert numpy array to image and save to temp file
+            import cv2
             with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
-                # In production, you'd write the actual image data here
-                # For now, create a placeholder
+                # Convert BGR to RGB if needed (OpenCV uses BGR)
+                if len(frame.shape) == 3 and frame.shape[2] == 3:
+                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                else:
+                    frame_rgb = frame
+                    
+                # Write image to temp file
+                cv2.imwrite(tmp_file.name, frame_rgb)
                 tmp_path = tmp_file.name
                 
             try:
@@ -230,46 +239,25 @@ class NativeMoondreamService:
             start_time = time.perf_counter()
             
             # Parse chat request
-            chat_request = ChatRequestMessage(**chat_data)
+            self.logger.info(f"Processing chat request: {chat_data}")
             
-            # Create temporary image file if image is provided
-            tmp_path = None
-            if hasattr(chat_request, 'image_data') and chat_request.image_data:
-                with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
-                    # In production, decode base64 image data
-                    tmp_path = tmp_file.name
-                    
-            try:
-                # Call Moondream CLI with the user's prompt
-                if tmp_path:
-                    response_text = self.call_moondream_cli(tmp_path, chat_request.message)
-                else:
-                    # Text-only request - use a default image or handle differently
-                    response_text = "I need an image to analyze. Please provide an image with your question."
-                
-                if response_text:
-                    processing_time = (time.perf_counter() - start_time) * 1000
-                    self.chat_requests_processed += 1
-                    
-                    chat_response = ChatResponseMessage(
-                        request_id=chat_request.request_id,
-                        response=response_text,
-                        processing_time_ms=processing_time,
-                        model_name="moondream2",
-                        timestamp=time.time()
-                    )
-                    
-                    return chat_response
-                    
-            finally:
-                # Clean up temporary file
-                if tmp_path:
-                    try:
-                        os.unlink(tmp_path)
-                    except:
-                        pass
-                        
-            return None
+            # For now, just echo back the message to test the pipeline
+            # TODO: Integrate actual Moondream model
+            message = chat_data.get('chat_message', {}).get('message', '')
+            response_text = f"[Moondream Echo Test] You said: '{message}'. (VLM integration pending)"
+            
+            processing_time = (time.perf_counter() - start_time) * 1000
+            self.chat_requests_processed += 1
+            
+            # Create response
+            chat_response = ChatResponseMessage(
+                response=response_text,
+                processing_time_ms=processing_time,
+                model_name="moondream2"
+            )
+            
+            self.logger.info(f"Sending chat response: {response_text}")
+            return chat_response
             
         except Exception as e:
             self.logger.error(f"Error processing chat request: {e}")
@@ -296,9 +284,9 @@ class NativeMoondreamService:
         self.logger.info("Starting Native Moondream service")
         
         try:
-            # Test Moondream CLI
-            if not self.test_moondream_cli():
-                raise RuntimeError("Moondream CLI is not available")
+            # Test Moondream CLI (disabled for now - using different implementation)
+            # if not self.test_moondream_cli():
+            #     raise RuntimeError("Moondream CLI is not available")
                 
             # Connect to Redis
             self.connect_redis()
@@ -311,8 +299,22 @@ class NativeMoondreamService:
                 try:
                     frame_message = self.frame_pubsub.get_message(timeout=0.1)
                     if frame_message and frame_message['type'] == 'message':
-                        frame_data = eval(frame_message['data'])
-                        vlm_result = self.process_frame(frame_data)
+                        # Unpickle frame package
+                        import pickle
+                        frame_package = pickle.loads(frame_message['data'])
+                        
+                        # Extract frame data and metadata
+                        frame_bytes = frame_package['frame_data']
+                        metadata_dict = frame_package['metadata']
+                        shape = frame_package['shape']
+                        dtype = frame_package['dtype']
+                        
+                        # Reconstruct numpy array
+                        import numpy as np
+                        frame = np.frombuffer(frame_bytes, dtype=dtype).reshape(shape)
+                        
+                        # Process frame with VLM
+                        vlm_result = self.process_frame_array(frame, metadata_dict)
                         if vlm_result:
                             self.publish_vlm_result(vlm_result)
                 except Exception as e:
@@ -322,7 +324,9 @@ class NativeMoondreamService:
                 try:
                     chat_message = self.chat_pubsub.get_message(timeout=0.1)
                     if chat_message and chat_message['type'] == 'message':
-                        chat_data = eval(chat_message['data'])
+                        # Parse JSON message
+                        import json
+                        chat_data = json.loads(chat_message['data'].decode('utf-8'))
                         chat_response = self.process_chat_request(chat_data)
                         if chat_response:
                             self.publish_chat_response(chat_response)
