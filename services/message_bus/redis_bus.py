@@ -189,50 +189,60 @@ class RedisMessageBus(MessageBus):
             raise RuntimeError("Not connected to Redis")
             
         try:
-            await self.pubsub.subscribe(f"msg:{channel}")
+            # Create a separate pubsub instance for each subscription
+            channel_pubsub = self.redis_client.pubsub()
+            await channel_pubsub.subscribe(f"msg:{channel}")
             
             async def message_handler():
-                async for message in self.pubsub.listen():
-                    if message['type'] == 'message' and message['channel'].decode('utf-8') == f"msg:{channel}":
-                        try:
-                            message_data = json.loads(message['data'].decode('utf-8'))
+                self.logger.info(f"Starting message handler for channel {channel}")
+                try:
+                    async for message in channel_pubsub.listen():
+                        # Debug log every message
+                        if message['type'] == 'message':
+                            self.logger.info(f"Received message on channel {message['channel'].decode('utf-8')}")
+                        
+                        if message['type'] == 'message' and message['channel'].decode('utf-8') == f"msg:{channel}":
+                            try:
+                                message_data = json.loads(message['data'].decode('utf-8'))
                             
-                            # Reconstruct message object based on type
-                            message_type = message_data.get('message_type')
-                            if message_type:
-                                # Log chat responses for debugging
-                                if message_type == 'chat_response':
-                                    self.logger.info(f"Received chat_response message on channel {channel}")
-                                
-                                # Import message classes dynamically to avoid circular imports
-                                from ..shared.models import (
-                                    DetectionMessage, VLMMessage, ChatRequestMessage,
-                                    ChatResponseMessage, StatusMessage, ConfigurationMessage
+                                # Reconstruct message object based on type
+                                message_type = message_data.get('message_type')
+                                if message_type:
+                                    # Log chat responses for debugging
+                                    if message_type == 'chat_response':
+                                        self.logger.info(f"Received chat_response message on channel {channel}")
+                                    
+                                    # Import message classes dynamically to avoid circular imports
+                                    from ..shared.models import (
+                                        DetectionMessage, VLMMessage, ChatRequestMessage,
+                                        ChatResponseMessage, StatusMessage, ConfigurationMessage
+                                    )
+                                    
+                                    message_classes = {
+                                        'detection': DetectionMessage,
+                                        'vlm': VLMMessage,
+                                        'chat_request': ChatRequestMessage,
+                                        'chat_response': ChatResponseMessage,
+                                        'status': StatusMessage,
+                                        'configuration': ConfigurationMessage,
+                                        'frame': FrameMessage
+                                    }
+                                    
+                                    message_class = message_classes.get(message_type, BusMessage)
+                                    parsed_message = message_class.model_validate(message_data)
+                                    
+                                    # Call async callback directly
+                                    await callback(parsed_message)
+                                    
+                            except Exception as e:
+                                log_error_with_context(
+                                    self.logger,
+                                    e,
+                                    {"channel": channel, "message": str(message)},
+                                    "message_handler"
                                 )
-                                
-                                message_classes = {
-                                    'detection': DetectionMessage,
-                                    'vlm': VLMMessage,
-                                    'chat_request': ChatRequestMessage,
-                                    'chat_response': ChatResponseMessage,
-                                    'status': StatusMessage,
-                                    'configuration': ConfigurationMessage,
-                                    'frame': FrameMessage
-                                }
-                                
-                                message_class = message_classes.get(message_type, BusMessage)
-                                parsed_message = message_class.model_validate(message_data)
-                                
-                                # Call async callback directly
-                                await callback(parsed_message)
-                                
-                        except Exception as e:
-                            log_error_with_context(
-                                self.logger,
-                                e,
-                                {"channel": channel, "message": str(message)},
-                                "message_handler"
-                            )
+                except Exception as e:
+                    self.logger.error(f"Error in message handler for {channel}: {e}")
             
             # Start handler task
             task = asyncio.create_task(message_handler())

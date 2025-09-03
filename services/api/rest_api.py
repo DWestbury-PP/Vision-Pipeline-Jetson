@@ -421,18 +421,18 @@ class MoondreamAPI:
             )
     
     async def start(self):
-        """Start the API and WebSocket handler."""
+        """Start the API server."""
         try:
-            await self.websocket_handler.start()
+            # WebSocket handler is started in the startup event
             self.logger.info(f"API server starting on {self.config.api_host}:{self.config.api_port}")
         except Exception as e:
             log_error_with_context(self.logger, e, operation="api_start")
             raise
     
     async def stop(self):
-        """Stop the API and WebSocket handler."""
+        """Stop the API server."""
         try:
-            await self.websocket_handler.stop()
+            # WebSocket handler is stopped in the shutdown event
             self.logger.info("API server stopped")
         except Exception as e:
             log_error_with_context(self.logger, e, operation="api_stop")
