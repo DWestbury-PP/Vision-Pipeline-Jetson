@@ -35,7 +35,7 @@ from pydantic_settings import BaseSettings
 # Import shared models from the containerized services
 from services.shared.models import (
     FrameMetadata, BoundingBox, VLMResult, 
-    VLMMessage, FrameMessage, ChatRequestMessage, ChatResponseMessage
+    VLMMessage, FrameMessage, ChatRequestMessage, ChatResponseMessage, ChatResponse
 )
 
 
@@ -71,6 +71,7 @@ class NativeMoondreamService:
         # Model will be loaded later
         self.model = None
         self.device = None
+        self.last_frame = None  # Store last frame for chat context
         
         # Performance tracking
         self.frames_processed = 0
@@ -181,6 +182,9 @@ class NativeMoondreamService:
     def process_frame_array(self, frame: np.ndarray, metadata_dict: dict) -> Optional[VLMMessage]:
         """Process a single frame array with Moondream VLM."""
         try:
+            # Store the last frame for chat context
+            self.last_frame = frame
+            
             if not self.model:
                 self.logger.warning("Model not loaded, skipping frame processing")
                 return None
@@ -265,30 +269,56 @@ class NativeMoondreamService:
     def process_chat_request(self, chat_data: dict) -> Optional[ChatResponseMessage]:
         """Process a chat request with Moondream."""
         try:
+            start_time = time.perf_counter()
+            
+            # Parse chat request
+            self.logger.info(f"Processing chat request: {chat_data}")
+            message = chat_data.get('chat_message', {}).get('message', '')
+            frame_id = chat_data.get('chat_message', {}).get('frame_id')
+            
             if not self.model:
                 self.logger.warning("Model not loaded, using echo mode")
-                message = chat_data.get('chat_message', {}).get('message', '')
                 response_text = f"[Model Loading] Echo: '{message}'"
             else:
-                start_time = time.perf_counter()
+                # Use the most recent frame if available
+                if hasattr(self, 'last_frame') and self.last_frame is not None:
+                    # Convert frame to PIL Image
+                    import cv2
+                    from PIL import Image
+                    frame_rgb = cv2.cvtColor(self.last_frame, cv2.COLOR_BGR2RGB)
+                    pil_image = Image.fromarray(frame_rgb)
+                    
+                    # Encode image for model
+                    enc_image = self.model.encode_image(pil_image)
+                    
+                    # Generate response based on the question and image
+                    response_text = self.model.answer_question(
+                        enc_image,
+                        message,
+                        tokenizer=None
+                    )
+                    self.logger.info(f"Generated VLM response for question: {message[:50]}...")
+                else:
+                    # No frame available, answer based on general context
+                    response_text = f"I need to see an image to answer your question: '{message}'. Please ensure the camera is active."
                 
-                # Parse chat request
-                self.logger.info(f"Processing chat request: {chat_data}")
-                message = chat_data.get('chat_message', {}).get('message', '')
-                
-                # If we have a recent frame, use it with the question
-                # For now, just answer the text question
-                # TODO: Include current frame context
-                response_text = f"[Moondream] I understand you asked: '{message}'. Currently I'm analyzing frames every {self.config.vlm_frame_stride} frames."
-                
-                processing_time = (time.perf_counter() - start_time) * 1000
-                self.chat_requests_processed += 1
+            processing_time = (time.perf_counter() - start_time) * 1000
+            self.chat_requests_processed += 1
             
-            # Create response
-            chat_response = ChatResponseMessage(
+            # Create chat response object
+            from datetime import datetime
+            chat_response_obj = ChatResponse(
                 response=response_text,
-                processing_time_ms=0,
-                model_name="moondream2"
+                timestamp=datetime.utcnow(),
+                processing_time_ms=processing_time if 'processing_time' in locals() else 0,
+                model_name="moondream2",
+                frame_id=chat_data.get('chat_message', {}).get('frame_id')
+            )
+            
+            # Create response message
+            chat_response = ChatResponseMessage(
+                chat_response=chat_response_obj,
+                source_service="moondream_native"
             )
             
             self.logger.info(f"Sending chat response: {response_text}")

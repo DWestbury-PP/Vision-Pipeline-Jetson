@@ -188,11 +188,29 @@ class MoondreamAPI:
         async def send_chat_message(request: ChatRequest):
             """Send a chat message to the VLM."""
             try:
-                # This would integrate with the message bus to send chat requests
-                # For now, return a placeholder response
+                import json
+                from ..shared.models import ChatRequestMessage
+                import uuid
+                from datetime import datetime
+                
+                # Create a ChatRequestMessage
+                chat_request_msg = ChatRequestMessage(
+                    request_id=str(uuid.uuid4()),
+                    message=request.message,
+                    timestamp=datetime.utcnow(),
+                    frame_id=request.frame_id
+                )
+                
+                # Publish to Redis for Moondream to process
+                message_json = json.dumps(chat_request_msg.model_dump(mode='json'))
+                await self.message_bus.publish_message("chat.requests", message_json)
+                
+                self.logger.info(f"Published chat request: {chat_request_msg.request_id}")
+                
                 return {
-                    "message": f"Received: {request.message}",
-                    "status": "queued",
+                    "request_id": chat_request_msg.request_id,
+                    "message": request.message,
+                    "status": "processing",
                     "frame_id": request.frame_id
                 }
                 

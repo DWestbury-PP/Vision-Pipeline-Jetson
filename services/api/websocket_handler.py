@@ -439,16 +439,19 @@ class WebSocketHandler:
     async def _handle_client_chat(self, chat_data: dict, client_id: str) -> None:
         """Handle chat message from client."""
         try:
+            from datetime import datetime
+            
             # Create chat message
             chat_message = ChatMessage(
                 message=chat_data.get("message", ""),
+                timestamp=datetime.utcnow(),
                 frame_id=self.latest_frame_metadata.frame_id if self.latest_frame_metadata else None
             )
             
-            # Create request message
+            # Create chat request message
             request_message = ChatRequestMessage(
-                source_service="websocket_api",
-                chat_message=chat_message
+                chat_message=chat_message,
+                source_service="websocket_api"
             )
             
             # Publish to message bus (need publisher for this)
@@ -461,6 +464,8 @@ class WebSocketHandler:
                 Channels.CHAT_REQUESTS,
                 request_message
             )
+            
+            self.logger.info(f"Published chat request with message: {chat_message.message[:50]}...")
             
         except Exception as e:
             log_error_with_context(
