@@ -63,6 +63,7 @@ frontend/build/
 # Logs
 logs/
 *.log
+*.pid
 
 # Model files and data
 models/

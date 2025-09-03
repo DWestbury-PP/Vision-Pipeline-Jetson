@@ -194,12 +194,8 @@ class RedisMessageBus(MessageBus):
             await channel_pubsub.subscribe(f"msg:{channel}")
             
             async def message_handler():
-                self.logger.info(f"Starting message handler for channel {channel}")
                 try:
                     async for message in channel_pubsub.listen():
-                        # Debug log every message
-                        if message['type'] == 'message':
-                            self.logger.info(f"Received message on channel {message['channel'].decode('utf-8')}")
                         
                         if message['type'] == 'message' and message['channel'].decode('utf-8') == f"msg:{channel}":
                             try:
@@ -208,9 +204,6 @@ class RedisMessageBus(MessageBus):
                                 # Reconstruct message object based on type
                                 message_type = message_data.get('message_type')
                                 if message_type:
-                                    # Log chat responses for debugging
-                                    if message_type == 'chat_response':
-                                        self.logger.info(f"Received chat_response message on channel {channel}")
                                     
                                     # Import message classes dynamically to avoid circular imports
                                     from ..shared.models import (

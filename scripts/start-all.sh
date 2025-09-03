@@ -140,9 +140,9 @@ export LOG_LEVEL=INFO
 # Start Camera Service
 echo -e "${YELLOW}  🎥 Starting Camera service...${NC}"
 export CAMERA_INDEX=0
-export CAMERA_WIDTH=1280
-export CAMERA_HEIGHT=720
-export CAMERA_FPS=30
+export CAMERA_WIDTH=1920
+export CAMERA_HEIGHT=1080
+export CAMERA_FPS=6  # Optimized for processing pipeline
 export CAMERA_FRAME_SKIP=1
 
 # Add a small delay to ensure camera is ready
