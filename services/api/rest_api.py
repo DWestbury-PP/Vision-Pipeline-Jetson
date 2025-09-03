@@ -51,6 +51,19 @@ class MoondreamAPI:
         self.moondream_service = None
         self.fusion_service = None
         
+        # Setup startup/shutdown events
+        @self.app.on_event("startup")
+        async def startup_event():
+            """Start the WebSocket handler on application startup."""
+            await self.websocket_handler.start()
+            self.logger.info("WebSocket handler started")
+        
+        @self.app.on_event("shutdown")
+        async def shutdown_event():
+            """Stop the WebSocket handler on application shutdown."""
+            await self.websocket_handler.stop()
+            self.logger.info("WebSocket handler stopped")
+        
         self._setup_middleware()
         self._setup_routes()
     
