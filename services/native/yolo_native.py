@@ -41,7 +41,7 @@ class NativeYOLOConfig(BaseSettings):
     redis_password: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
     
     # YOLO configuration
-    yolo_model: str = Field(default="models/yolo/yolo11n.pt", env="YOLO_MODEL")
+    yolo_model: str = Field(default="yolo11n.pt", env="YOLO_MODEL")
     yolo_confidence: float = Field(default=0.5, env="YOLO_CONFIDENCE")
     yolo_device: str = Field(default="mps", env="YOLO_DEVICE")  # Apple Silicon
     yolo_frame_stride: int = Field(default=1, env="YOLO_FRAME_STRIDE")
@@ -79,8 +79,31 @@ class NativeYOLOService:
         
     async def load_model(self):
         """Load YOLO model with Apple Silicon optimization."""
+        import os
         try:
-            self.logger.info(f"Loading YOLO model: {self.config.yolo_model}")
+            # Convert to absolute path if relative
+            model_path = self.config.yolo_model
+            if not os.path.isabs(model_path):
+                # Get the project root (where the script is called from)
+                project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                # If it's just the model filename, prepend the models/yolo directory
+                if "/" not in model_path:
+                    model_path = os.path.join(project_root, "models", "yolo", model_path)
+                else:
+                    model_path = os.path.join(project_root, model_path)
+            
+            # Check if model file exists
+            if not os.path.exists(model_path):
+                self.logger.error(f"Model file not found at: {model_path}")
+                # Try to use the model from the models/yolo directory
+                fallback_path = os.path.join(project_root, "models", "yolo", "yolo11n.pt")
+                if os.path.exists(fallback_path):
+                    model_path = fallback_path
+                    self.logger.info(f"Using fallback model path: {model_path}")
+                else:
+                    raise FileNotFoundError(f"YOLO model not found at {model_path} or {fallback_path}")
+            
+            self.logger.info(f"Loading YOLO model: {model_path}")
             
             # Check for Apple Silicon MPS support
             if self.config.yolo_device == "mps" and torch.backends.mps.is_available():
@@ -93,8 +116,8 @@ class NativeYOLOService:
                 device = "cpu"
                 self.logger.info("Using CPU for inference")
             
-            # Load model
-            self.model = YOLO(self.config.yolo_model)
+            # Load model with absolute path
+            self.model = YOLO(model_path)
             
             # Move to appropriate device
             if device != "cpu":
