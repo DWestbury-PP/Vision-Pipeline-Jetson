@@ -41,7 +41,7 @@ class NativeYOLOConfig(BaseSettings):
     redis_password: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
     
     # YOLO configuration
-    yolo_model: str = Field(default="yolo11n.pt", env="YOLO_MODEL")
+    yolo_model: str = Field(default="models/yolo/yolo11n.pt", env="YOLO_MODEL")
     yolo_confidence: float = Field(default=0.5, env="YOLO_CONFIDENCE")
     yolo_device: str = Field(default="mps", env="YOLO_DEVICE")  # Apple Silicon
     yolo_frame_stride: int = Field(default=1, env="YOLO_FRAME_STRIDE")
