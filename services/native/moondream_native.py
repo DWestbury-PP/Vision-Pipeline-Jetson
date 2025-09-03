@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Native Moondream service for macOS that interfaces with the existing 'moondream' CLI.
+Native Moondream service for macOS using the actual Moondream2 model.
 Runs outside of containers to access Apple Silicon GPU.
 """
 
@@ -14,12 +14,19 @@ import pickle
 import subprocess
 import tempfile
 import numpy as np
+import torch
 from pathlib import Path
 from typing import Optional, List
+from PIL import Image
+import cv2
 
 # Add the project root to the path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
+
+# Add the moondream model path
+moondream_path = project_root / "models" / "moondream" / "moondream2"
+sys.path.insert(0, str(moondream_path))
 
 import redis
 from pydantic import Field
@@ -51,7 +58,7 @@ class NativeMoondreamConfig(BaseSettings):
 
 
 class NativeMoondreamService:
-    """Native Moondream service using the existing CLI."""
+    """Native Moondream service using the actual Moondream2 model."""
     
     def __init__(self):
         self.config = NativeMoondreamConfig()
@@ -60,6 +67,10 @@ class NativeMoondreamService:
         self.redis_client: Optional[redis.Redis] = None
         self.frame_pubsub: Optional[redis.client.PubSub] = None
         self.chat_pubsub: Optional[redis.client.PubSub] = None
+        
+        # Model will be loaded later
+        self.model = None
+        self.device = None
         
         # Performance tracking
         self.frames_processed = 0
@@ -76,29 +87,38 @@ class NativeMoondreamService:
         )
         self.logger = logging.getLogger("native.moondream")
         
-    def test_moondream_cli(self) -> bool:
-        """Test if the moondream CLI is available."""
+    def load_moondream_model(self):
+        """Load the Moondream2 model from local files."""
         try:
-            result = subprocess.run(
-                [self.config.moondream_cli_command, "--help"],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            if result.returncode == 0:
-                self.logger.info("Moondream CLI is available and working")
-                return True
+            self.logger.info("Loading Moondream2 model from local files...")
+            
+            # Set device - use MPS for Apple Silicon
+            if torch.backends.mps.is_available():
+                self.device = torch.device("mps")
+                self.logger.info("Using Apple Silicon MPS for acceleration")
             else:
-                self.logger.error(f"Moondream CLI test failed: {result.stderr}")
-                return False
-        except FileNotFoundError:
-            self.logger.error(f"Moondream CLI not found: {self.config.moondream_cli_command}")
-            return False
-        except subprocess.TimeoutExpired:
-            self.logger.error("Moondream CLI test timed out")
-            return False
+                self.device = torch.device("cpu")
+                self.logger.info("Using CPU (MPS not available)")
+            
+            # Import the model classes
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+            
+            # Load model from local directory
+            model_path = str(project_root / "models" / "moondream" / "moondream2")
+            
+            self.logger.info(f"Loading model from {model_path}")
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_path,
+                trust_remote_code=True,
+                torch_dtype=torch.float16 if self.device.type == "mps" else torch.float32,
+                device_map={"": self.device}
+            )
+            
+            self.logger.info("Model loaded successfully!")
+            return True
+            
         except Exception as e:
-            self.logger.error(f"Error testing Moondream CLI: {e}")
+            self.logger.error(f"Failed to load Moondream model: {e}")
             return False
             
     def connect_redis(self):
@@ -161,6 +181,10 @@ class NativeMoondreamService:
     def process_frame_array(self, frame: np.ndarray, metadata_dict: dict) -> Optional[VLMMessage]:
         """Process a single frame array with Moondream VLM."""
         try:
+            if not self.model:
+                self.logger.warning("Model not loaded, skipping frame processing")
+                return None
+                
             start_time = time.perf_counter()
             
             # Create frame metadata
@@ -171,30 +195,35 @@ class NativeMoondreamService:
             if self.frames_processed % self.config.vlm_frame_stride != 0:
                 return None
                 
-            # Convert numpy array to image and save to temp file
-            import cv2
-            with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
+            # Convert numpy array to PIL Image
+            if len(frame.shape) == 3 and frame.shape[2] == 3:
                 # Convert BGR to RGB if needed (OpenCV uses BGR)
-                if len(frame.shape) == 3 and frame.shape[2] == 3:
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                else:
-                    frame_rgb = frame
-                    
-                # Write image to temp file
-                cv2.imwrite(tmp_file.name, frame_rgb)
-                tmp_path = tmp_file.name
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            else:
+                frame_rgb = frame
                 
+            # Convert to PIL Image
+            pil_image = Image.fromarray(frame_rgb.astype('uint8'))
+            
             try:
-                # Call Moondream CLI
-                description = self.call_moondream_cli(tmp_path, "Describe this image in detail")
+                # Use the model to generate a description
+                self.logger.info(f"Processing frame {frame_metadata.frame_id} with Moondream")
+                
+                # Encode the image and generate description
+                enc_image = self.model.encode_image(pil_image)
+                description = self.model.answer_question(
+                    enc_image,
+                    "Describe what you see in this image in detail.",
+                    tokenizer=None
+                )
                 
                 if description:
                     # Create VLM result
                     vlm_result = VLMResult(
                         description=description,
-                        confidence=0.95,  # CLI doesn't provide confidence, use default
-                        detected_objects=[],  # CLI output would need parsing for objects
-                        bounding_boxes=[]  # CLI doesn't provide bounding boxes by default
+                        confidence=0.95,
+                        detected_objects=[],
+                        bounding_boxes=[]
                     )
                     
                     processing_time = (time.perf_counter() - start_time) * 1000
@@ -236,23 +265,29 @@ class NativeMoondreamService:
     def process_chat_request(self, chat_data: dict) -> Optional[ChatResponseMessage]:
         """Process a chat request with Moondream."""
         try:
-            start_time = time.perf_counter()
-            
-            # Parse chat request
-            self.logger.info(f"Processing chat request: {chat_data}")
-            
-            # For now, just echo back the message to test the pipeline
-            # TODO: Integrate actual Moondream model
-            message = chat_data.get('chat_message', {}).get('message', '')
-            response_text = f"[Moondream Echo Test] You said: '{message}'. (VLM integration pending)"
-            
-            processing_time = (time.perf_counter() - start_time) * 1000
-            self.chat_requests_processed += 1
+            if not self.model:
+                self.logger.warning("Model not loaded, using echo mode")
+                message = chat_data.get('chat_message', {}).get('message', '')
+                response_text = f"[Model Loading] Echo: '{message}'"
+            else:
+                start_time = time.perf_counter()
+                
+                # Parse chat request
+                self.logger.info(f"Processing chat request: {chat_data}")
+                message = chat_data.get('chat_message', {}).get('message', '')
+                
+                # If we have a recent frame, use it with the question
+                # For now, just answer the text question
+                # TODO: Include current frame context
+                response_text = f"[Moondream] I understand you asked: '{message}'. Currently I'm analyzing frames every {self.config.vlm_frame_stride} frames."
+                
+                processing_time = (time.perf_counter() - start_time) * 1000
+                self.chat_requests_processed += 1
             
             # Create response
             chat_response = ChatResponseMessage(
                 response=response_text,
-                processing_time_ms=processing_time,
+                processing_time_ms=0,
                 model_name="moondream2"
             )
             
@@ -284,9 +319,9 @@ class NativeMoondreamService:
         self.logger.info("Starting Native Moondream service")
         
         try:
-            # Test Moondream CLI (disabled for now - using different implementation)
-            # if not self.test_moondream_cli():
-            #     raise RuntimeError("Moondream CLI is not available")
+            # Load the Moondream model
+            if not self.load_moondream_model():
+                self.logger.warning("Failed to load model, will run in echo mode")
                 
             # Connect to Redis
             self.connect_redis()
