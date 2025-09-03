@@ -155,6 +155,7 @@ class NativeYOLOService:
             detections = []
             for result in results:
                 if result.boxes is not None:
+                    self.logger.info(f"Found {len(result.boxes)} objects in frame {frame_metadata.frame_id}")
                     for box in result.boxes:
                         # Extract box coordinates and confidence
                         x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
@@ -177,6 +178,9 @@ class NativeYOLOService:
             self.frames_processed += 1
             
             # Create DetectionResult with all bounding boxes
+            if detections:
+                self.logger.info(f"Found {len(detections)} objects in frame {frame_metadata.frame_id}")
+            
             detection_result = DetectionResult(
                 bounding_boxes=detections,  # detections is already a list of BoundingBox
                 processing_time_ms=processing_time,
@@ -210,6 +214,7 @@ class NativeYOLOService:
             import json
             message_json = json.dumps(detection_message.model_dump(mode='json'))
             self.redis_client.publish("msg:detection.yolo", message_json.encode('utf-8'))
+            self.logger.info(f"Published detection for frame {detection_message.frame_id} to msg:detection.yolo")
         except Exception as e:
             self.logger.error(f"Failed to publish detection: {e}")
             
@@ -224,32 +229,47 @@ class NativeYOLOService:
             
             self.logger.info("Native YOLO service started successfully")
             
-            # Process messages in a blocking loop (Redis pubsub is synchronous)
-            for message in self.pubsub.listen():
-                if message['type'] == 'message':
-                    try:
-                        # Unpickle frame package
-                        import pickle
-                        frame_package = pickle.loads(message['data'])
-                        
-                        # Extract frame data and metadata
-                        frame_bytes = frame_package['frame_data']
-                        metadata_dict = frame_package['metadata']
-                        shape = frame_package['shape']
-                        dtype = frame_package['dtype']
-                        
-                        # Reconstruct numpy array
-                        frame = np.frombuffer(frame_bytes, dtype=dtype).reshape(shape)
-                        
-                        # Process frame with YOLO
-                        detection_result = self.process_frame_array(frame, metadata_dict)
-                        
-                        # Publish results
-                        if detection_result:
-                            self.publish_detection(detection_result)
+            # Run the blocking Redis listener in a thread
+            import asyncio
+            import threading
+            
+            def process_messages():
+                """Process Redis messages in a thread."""
+                self.logger.info("Message processing thread started")
+                for message in self.pubsub.listen():
+                    if message['type'] == 'message':
+                        try:
+                            self.logger.info(f"Processing frame from Redis")
+                            # Unpickle frame package
+                            import pickle
+                            frame_package = pickle.loads(message['data'])
                             
-                    except Exception as e:
-                        self.logger.error(f"Error processing message: {e}")
+                            # Extract frame data and metadata
+                            frame_bytes = frame_package['frame_data']
+                            metadata_dict = frame_package['metadata']
+                            shape = frame_package['shape']
+                            dtype = frame_package['dtype']
+                            
+                            # Reconstruct numpy array
+                            frame = np.frombuffer(frame_bytes, dtype=dtype).reshape(shape)
+                            
+                            # Process frame with YOLO
+                            detection_result = self.process_frame_array(frame, metadata_dict)
+                            
+                            # Publish results
+                            if detection_result:
+                                self.publish_detection(detection_result)
+                                
+                        except Exception as e:
+                            self.logger.error(f"Error processing message: {e}")
+            
+            # Start processing thread
+            thread = threading.Thread(target=process_messages, daemon=True)
+            thread.start()
+            
+            # Keep the async function running
+            while True:
+                await asyncio.sleep(1)
                         
         except KeyboardInterrupt:
             self.logger.info("Shutting down Native YOLO service")

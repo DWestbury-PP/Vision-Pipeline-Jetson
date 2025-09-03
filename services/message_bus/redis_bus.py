@@ -219,9 +219,8 @@ class RedisMessageBus(MessageBus):
                                 message_class = message_classes.get(message_type, BusMessage)
                                 parsed_message = message_class.model_validate(message_data)
                                 
-                                # Call callback in thread pool to avoid blocking
-                                loop = asyncio.get_event_loop()
-                                await loop.run_in_executor(None, callback, parsed_message)
+                                # Call async callback directly
+                                await callback(parsed_message)
                                 
                         except Exception as e:
                             log_error_with_context(

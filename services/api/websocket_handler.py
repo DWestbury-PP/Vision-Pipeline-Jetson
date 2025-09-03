@@ -269,15 +269,19 @@ class WebSocketHandler:
     async def _handle_yolo_result(self, message: DetectionMessage) -> None:
         """Handle YOLO detection results."""
         try:
+            self.logger.info(f"Received YOLO detection for frame {message.frame_id} with {len(message.result.bounding_boxes)} objects")
+            
             ws_message = WSDetectionUpdate(
                 frame_id=message.frame_id,
                 yolo_result=message.result
             )
             
+            self.logger.info(f"Broadcasting YOLO detection for frame {message.frame_id}")
             await self.manager.broadcast_filtered(
                 ws_message.model_dump(mode='json'),
                 lambda client_id, settings: settings.get("send_detections", True)
             )
+            self.logger.info(f"YOLO detection broadcast complete for frame {message.frame_id}")
             
         except Exception as e:
             log_error_with_context(
