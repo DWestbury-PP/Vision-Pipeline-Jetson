@@ -1,10 +1,9 @@
-# Jetson-Optimized ML and Vision Libraries
+# Core dependencies for Vision Pipeline on Jetson
 # Note: PyTorch comes pre-installed in NVIDIA L4T PyTorch containers
-ultralytics>=8.0.0
+
+# Essential ML libraries
 transformers>=4.30.0
-accelerate>=0.20.0
 pillow>=9.0.0
-# Use regular opencv-python instead of contrib to avoid dependency issues
 opencv-python>=4.8.0
 numpy>=1.24.0
 
@@ -14,18 +13,14 @@ aioredis>=2.0.0
 
 # Web Framework and API
 fastapi>=0.100.0
-uvicorn[standard]>=0.20.0
+uvicorn>=0.20.0
 websockets>=11.0.0
 
 # Data Validation and Configuration
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
 
-# Utilities and Helpers
+# Basic utilities
 python-multipart>=0.0.6
-python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
 aiofiles>=23.0.0
-
-# Additional utilities for Jetson
-psutil>=5.9.0  # For system monitoring
+psutil>=5.9.0
