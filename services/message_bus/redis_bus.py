@@ -222,7 +222,11 @@ class RedisMessageBus(MessageBus):
                                     }
                                     
                                     message_class = message_classes.get(message_type, BusMessage)
-                                    parsed_message = message_class.model_validate(message_data)
+                                    # Use parse_obj for Pydantic 1.x compatibility
+                                    if hasattr(message_class, 'model_validate'):
+                                        parsed_message = message_class.model_validate(message_data)
+                                    else:
+                                        parsed_message = message_class.parse_obj(message_data)
                                     
                                     # Call async callback directly
                                     await callback(parsed_message)
@@ -277,8 +281,11 @@ class RedisMessageBus(MessageBus):
                             # Deserialize frame package
                             frame_package = pickle.loads(message['data'])
                             
-                            # Extract metadata
-                            metadata = FrameMetadata.model_validate(frame_package['metadata'])
+                            # Extract metadata - Pydantic 1.x compatibility
+                            if hasattr(FrameMetadata, 'model_validate'):
+                                metadata = FrameMetadata.model_validate(frame_package['metadata'])
+                            else:
+                                metadata = FrameMetadata.parse_obj(frame_package['metadata'])
                             
                             # Reconstruct frame data
                             frame_bytes = frame_package['frame_data']
