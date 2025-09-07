@@ -23,8 +23,8 @@ RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /home/appuser/.cache
 
 # Copy requirements and install Python dependencies
-COPY containers/requirements-jetson.txt .
-RUN pip3 install --no-cache-dir --timeout 300 --retries 3 -r requirements-jetson.txt
+COPY containers/requirements-minimal.txt .
+RUN pip3 install --no-cache-dir --timeout 300 --retries 3 -r requirements-minimal.txt
 
 # Copy application code
 COPY services/ ./services/

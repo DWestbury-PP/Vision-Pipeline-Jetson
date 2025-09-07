@@ -1,0 +1,14 @@
+# Minimal requirements for basic functionality
+# We'll add packages back incrementally to identify the problematic one
+
+# Basic web framework
+fastapi>=0.100.0
+uvicorn>=0.20.0
+
+# Message bus
+redis>=4.5.0
+
+# Basic utilities
+pydantic>=2.0.0
+pillow>=9.0.0
+numpy>=1.24.0
