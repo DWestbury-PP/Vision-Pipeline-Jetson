@@ -1,321 +1,470 @@
-# Moondream Vision Pipeline Deployment Guide
+# Vision Pipeline Mac Deployment Guide
 
 ## Overview
 
-This guide covers deploying the complete Moondream Vision Pipeline using Docker containers. The system is designed to run entirely in containers without requiring any packages to be installed on the host system.
-
-## Prerequisites
-
-- Docker Engine 20.10+
-- Docker Compose 2.0+
-- At least 8GB RAM (16GB recommended for multiple Moondream instances)
-- Compatible camera device (Mac Studio Display camera supported out of the box)
-
-## Quick Start
-
-1. **Clone and Navigate to the Project**
-   ```bash
-   cd /path/to/moondream-vision-pipeline
-   ```
-
-2. **Configure Environment**
-   ```bash
-   # Copy and customize environment file
-   cp env.example .env
-   # Edit .env file with your specific settings
-   ```
-
-3. **Deploy All Services**
-   ```bash
-   ./scripts/deploy.sh
-   ```
-
-4. **Access the Application**
-   - Frontend UI: http://localhost:3000
-   - API Documentation: http://localhost:8000/docs
-   - Health Check: http://localhost:8000/health
+This guide covers deploying the complete Vision Pipeline using a **hybrid architecture** specifically optimized for Apple Silicon Macs. The system combines Docker containers with native services to leverage GPU acceleration while maintaining clean separation of concerns.
 
 ## Architecture
 
-The system consists of the following containerized services:
+### Hybrid Design
 
-- **Redis**: Message bus for high-performance pub/sub
-- **Camera Service**: Captures frames and publishes to message bus
-- **YOLO Service**: Fast object detection (YOLO11)
-- **Moondream Service**: VLM processing with parallel instances
-- **Fusion Service**: Combines YOLO and VLM outputs
-- **API Service**: REST API and WebSocket handlers
-- **Frontend**: React UI with real-time visualization
+**Containerized Services (Infrastructure):**
+- `redis`: Message bus for inter-service communication
+- `api`: FastAPI service with WebSocket support  
+- `frontend`: React-based web interface
+- `fusion`: Combines outputs from detection services
 
-## Configuration
+**Native Services (Apple Silicon GPU Access):**
+- `camera_native.py`: Camera capture and frame publishing
+- `yolo_native.py`: YOLO11 object detection using Apple Silicon GPU
+- `moondream_native.py`: Moondream2 VLM using Apple Silicon GPU
 
-### Environment Variables
+### Why Hybrid?
 
-Key configuration options in `.env`:
+- Apple Silicon GPU access requires native execution
+- Docker Desktop on macOS runs in a Linux VM without Metal Performance Shaders access
+- Native services leverage Apple's Metal Performance Shaders for maximum performance
+- Containerized infrastructure services provide easy management and portability
 
+## Prerequisites
+
+- **macOS** with Apple Silicon (M1/M2/M3/M4 recommended)
+- **Docker Desktop** 20.10+ with Docker Compose 2.0+
+- **Python 3.13+** (via Homebrew recommended)
+- **At least 8GB RAM** (16GB recommended)
+- **Compatible camera** (Mac Studio Display camera supported out of the box)
+
+## Complete Setup Guide
+
+### Step 1: Clone and Navigate to Project
+
+```bash
+git clone <repository-url>
+cd Vision-Pipeline-Mac
+```
+
+### Step 2: Install System Dependencies
+
+```bash
+# Install Python 3.13 via Homebrew (if not already installed)
+brew install python@3.13
+
+# Verify Python installation
+python3 --version  # Should show 3.13.x
+```
+
+### Step 3: Create and Setup Virtual Environment
+
+```bash
+# Create virtual environment for native services
+python3 -m venv models/yolo11_env
+
+# Activate virtual environment
+source models/yolo11_env/bin/activate
+
+# Install all required dependencies
+pip install -r containers/requirements-base.txt
+```
+
+**Expected packages installed:**
+- PyTorch with MPS support
+- OpenCV for camera handling
+- Ultralytics YOLO
+- Transformers for Moondream
+- Redis client
+- FastAPI and other API dependencies
+
+### Step 4: Setup Model Files
+
+The project includes pre-downloaded model files. Verify they exist:
+
+```bash
+# Check YOLO model
+ls -la models/yolo/yolo11n.pt
+
+# Check Moondream model files
+ls -la models/moondream/moondream2/
+```
+
+**Important**: If you move or clone this project to a different directory, you may need to fix HuggingFace cache symlinks:
+
+```bash
+# Remove broken symlinks (if they exist)
+rm ~/.cache/huggingface/modules/transformers_modules/moondream2/*.py 2>/dev/null || true
+
+# Copy actual files to cache
+cp models/moondream/moondream2/*.py ~/.cache/huggingface/modules/transformers_modules/moondream2/ 2>/dev/null || true
+```
+
+### Step 5: Configure Environment (Optional)
+
+```bash
+# Copy example environment file
+cp env.example .env
+
+# Edit configuration if needed
+nano .env
+```
+
+**Key configuration options:**
 ```bash
 # Camera Configuration
-CAMERA_TYPE=mac_studio          # mac_studio, jetson, usb
+CAMERA_INDEX=0
 CAMERA_WIDTH=1920
 CAMERA_HEIGHT=1080
-CAMERA_FPS=30
+CAMERA_FPS=6                    # Optimized for processing pipeline
 
-# YOLO Configuration
-YOLO_MODEL=yolo11n.pt          # Model size: n, s, m, l, x
+# YOLO Configuration  
+YOLO_MODEL=yolo11n.pt
+YOLO_DEVICE=mps                 # Apple Silicon GPU
 YOLO_CONFIDENCE=0.5
-YOLO_DEVICE=mps                # mps (Apple Silicon), cuda, cpu
+YOLO_FRAME_STRIDE=2             # Process every 2nd frame
 
 # Moondream Configuration
-MOONDREAM_MODEL=vikhyatk/moondream2
-MOONDREAM_DEVICE=mps           # mps (Apple Silicon), cuda, cpu
-MOONDREAM_INSTANCES=2          # Number of parallel instances
+VLM_FRAME_STRIDE=10             # Process every 10th frame
+VLM_MAX_CONTEXT_LENGTH=100
 
-# Pipeline Configuration
-VLM_FRAME_STRIDE=10           # Process every Nth frame with VLM
-YOLO_FRAME_STRIDE=1           # Process every Nth frame with YOLO
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
 ```
 
-### Hardware-Specific Settings
+### Step 6: Build Base Docker Image
 
-#### Apple Silicon (M1/M2/M3/M4)
 ```bash
-YOLO_DEVICE=mps
-MOONDREAM_DEVICE=mps
+# Build the base image (first time setup)
+./scripts/build-base.sh
 ```
 
-#### NVIDIA GPU
+### Step 7: Start the Complete System
+
 ```bash
-YOLO_DEVICE=cuda
-MOONDREAM_DEVICE=cuda
+# Start all services (hybrid architecture)
+./scripts/start-all.sh
 ```
 
-#### CPU Only
+**What this script does:**
+1. Checks prerequisites (Docker, virtual environment, base image)
+2. Stops any existing services
+3. Starts Docker services (Redis, API, Frontend, Fusion)
+4. Starts native services (Camera, YOLO, Moondream)
+5. Verifies all services are running
+
+## Accessing the Application
+
+Once startup is complete, access:
+
+- **Frontend UI**: http://localhost:3000
+- **API Documentation**: http://localhost:8000/docs
+- **Health Check**: http://localhost:8000/health
+
+## Service Management
+
+### Check Status
 ```bash
-YOLO_DEVICE=cpu
-MOONDREAM_DEVICE=cpu
+./scripts/status.sh
 ```
 
-## Deployment Commands
-
-### Full Deployment
+### View Logs
 ```bash
-./scripts/deploy.sh
+# View all logs in real-time
+./scripts/logs-unified.sh
+
+# View specific service logs
+tail -f logs/camera_native.log
+tail -f logs/yolo_native.log
+tail -f logs/moondream_native.log
+
+# View Docker service logs
+docker-compose logs -f api
+docker-compose logs -f frontend
 ```
 
-### Manual Deployment
+### Stop All Services
 ```bash
-# Start Redis first
-docker-compose up -d redis
-
-# Build and start all services
-docker-compose build
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
+./scripts/stop-all.sh
 ```
 
-### Individual Service Management
+### Restart Individual Services
+
+**Native services:**
 ```bash
-# Start specific service
-docker-compose up -d camera
+# Stop service
+pkill -f camera_native    # or yolo_native, moondream_native
 
-# View service logs
-docker-compose logs -f moondream
-
-# Restart service
-docker-compose restart yolo
-
-# Scale Moondream instances
-docker-compose up -d --scale moondream=3
+# Start service
+source models/yolo11_env/bin/activate
+python3 services/native/camera_native.py > logs/camera_native.log 2>&1 &
 ```
 
-## Monitoring and Debugging
-
-### Health Checks
+**Docker services:**
 ```bash
-# Check all services
-docker-compose ps
-
-# API health check
-curl http://localhost:8000/health
-
-# System status
-curl http://localhost:8000/status
+docker-compose restart api
+docker-compose restart frontend
 ```
 
-### Log Analysis
-```bash
-# View all logs
-docker-compose logs
+## Performance Characteristics
 
-# Follow specific service logs
-docker-compose logs -f camera
-docker-compose logs -f yolo
-docker-compose logs -f moondream
+**Apple Silicon Performance:**
+- Camera: ~6 FPS capture rate
+- YOLO: ~50 FPS capability (limited by camera)
+- Moondream: 1-3 seconds per VLM query
+- End-to-end latency: <100ms (detection), 1-3s (VLM)
 
-# View structured logs with jq
-docker-compose logs camera | jq '.'
-```
-
-### Performance Monitoring
-```bash
-# Container resource usage
-docker stats
-
-# API performance metrics
-curl http://localhost:8000/metrics
-```
+**Scaling by Mac Model:**
+- M1: Good performance for development
+- M1 Pro/Max: Excellent for production use
+- M2/M3/M4: Optimal performance across all models
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### Camera Access Issues
-```bash
-# Ensure camera device access
-ls -la /dev/video*
+#### 1. Camera Service Won't Start
+**Error**: `ModuleNotFoundError: No module named 'cv2'`
 
-# Check camera service logs
-docker-compose logs camera
+**Solution**:
+```bash
+# Recreate virtual environment
+rm -rf models/yolo11_env
+python3 -m venv models/yolo11_env
+source models/yolo11_env/bin/activate
+pip install -r containers/requirements-base.txt
 ```
 
-#### GPU Access Issues
-```bash
-# For NVIDIA GPU
-docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
+#### 2. Moondream Model Won't Load
+**Error**: `No such file or directory: hf_moondream.py`
 
-# For Apple Silicon
-# MPS support is automatic in PyTorch containers
+**Solution**:
+```bash
+# Fix HuggingFace cache symlinks
+mkdir -p ~/.cache/huggingface/modules/transformers_modules/moondream2
+rm ~/.cache/huggingface/modules/transformers_modules/moondream2/*.py 2>/dev/null || true
+cp models/moondream/moondream2/*.py ~/.cache/huggingface/modules/transformers_modules/moondream2/
+
+# Restart Moondream service
+pkill -f moondream_native
+source models/yolo11_env/bin/activate
+python3 services/native/moondream_native.py > logs/moondream_native.log 2>&1 &
 ```
 
-#### Memory Issues
-```bash
-# Check container memory usage
-docker stats
+#### 3. Docker Services Won't Start
+**Error**: Docker daemon not running
 
-# Reduce Moondream instances
-# Edit .env: MOONDREAM_INSTANCES=1
-docker-compose up -d --scale moondream=1
+**Solution**:
+```bash
+# Start Docker Desktop application
+open -a Docker
+
+# Wait for Docker to start, then retry
+./scripts/start-all.sh
 ```
 
-#### Network Issues
-```bash
-# Check port availability
-netstat -ln | grep 3000
-netstat -ln | grep 8000
+#### 4. Port Already in Use
+**Error**: Port 3000 or 8000 already in use
 
-# Restart with different ports
-# Edit docker-compose.yml port mappings
+**Solution**:
+```bash
+# Find and kill processes using the ports
+lsof -ti:3000 | xargs kill -9
+lsof -ti:8000 | xargs kill -9
+
+# Or modify docker-compose.yml to use different ports
+```
+
+#### 5. Virtual Environment Path Issues
+**Error**: Virtual environment created in wrong location
+
+**Solution**:
+```bash
+# Remove and recreate in correct location
+rm -rf models/yolo11_env
+cd /path/to/Vision-Pipeline-Mac  # Ensure you're in project root
+python3 -m venv models/yolo11_env
+source models/yolo11_env/bin/activate
+pip install -r containers/requirements-base.txt
 ```
 
 ### Performance Tuning
 
-#### Optimize for Latency
-- Reduce `VLM_FRAME_STRIDE` (process more frames)
-- Use faster YOLO model (yolo11n.pt)
-- Increase `MOONDREAM_INSTANCES`
+#### Optimize for Lower Latency
+```bash
+# Edit .env or export environment variables
+export CAMERA_FPS=10
+export YOLO_FRAME_STRIDE=1
+export VLM_FRAME_STRIDE=5
+```
 
-#### Optimize for Throughput
-- Increase `VLM_FRAME_STRIDE` (process fewer frames)
-- Use larger YOLO model (yolo11l.pt)
-- Optimize camera resolution
+#### Optimize for Lower Resource Usage
+```bash
+export CAMERA_FPS=6
+export YOLO_FRAME_STRIDE=3
+export VLM_FRAME_STRIDE=15
+export CAMERA_WIDTH=1280
+export CAMERA_HEIGHT=720
+```
 
-#### Memory Optimization
-- Reduce `MOONDREAM_INSTANCES`
-- Lower camera resolution
-- Use smaller models
+### Log Analysis
+
+**Structured JSON logs** are used throughout. Use `jq` for analysis:
+
+```bash
+# Parse camera service logs
+tail -f logs/camera_native.log | jq '.'
+
+# Filter for errors
+tail -f logs/moondream_native.log | jq 'select(.level=="ERROR")'
+
+# Monitor performance metrics
+tail -f logs/yolo_native.log | jq 'select(.message | contains("Performance"))'
+```
+
+## Development Workflow
+
+### Making Changes
+
+1. **Frontend changes**: Automatically reloaded in development
+2. **API changes**: Restart API container: `docker-compose restart api`
+3. **Native service changes**: Stop and restart specific service
+4. **Configuration changes**: Restart affected services
+
+### Testing Changes
+
+```bash
+# Quick health check
+curl http://localhost:8000/health
+
+# Test WebSocket connection
+# Use browser developer tools or WebSocket test tools
+
+# Verify camera feed
+# Check frontend at http://localhost:3000
+```
 
 ## Updating the System
 
-### Update All Services
+### Update Dependencies
 ```bash
-# Pull latest images
-docker-compose pull
+# Update Python packages
+source models/yolo11_env/bin/activate
+pip install --upgrade -r containers/requirements-base.txt
 
-# Rebuild services
+# Rebuild Docker images
+./scripts/build-base.sh
 docker-compose build
-
-# Restart with new images
-docker-compose up -d
 ```
 
-### Update Individual Components
+### Update Models
 ```bash
-# Update frontend only
-docker-compose build frontend
-docker-compose up -d frontend
+# Update YOLO model
+cd models/yolo
+# Download new model file
 
-# Update models
-docker-compose exec yolo python -c "from ultralytics import YOLO; YOLO('yolo11l.pt')"
+# Update Moondream model
+# Download new model files to models/moondream/moondream2/
 ```
 
-## Data Persistence
+## Data and Logs
+
+### Log Locations
+- **Native services**: `logs/*.log` (JSON formatted)
+- **Docker services**: `docker-compose logs <service>`
 
 ### Model Cache
-Models are cached in Docker volumes:
-- `model_cache`: YOLO models
-- `huggingface_cache`: Moondream models
+- **YOLO models**: `models/yolo/`
+- **Moondream models**: `models/moondream/`
+- **HuggingFace cache**: `~/.cache/huggingface/`
 
-### Logs
-Structured logs are output to stdout and can be collected using:
+### Backup Important Data
 ```bash
-# Save logs to file
-docker-compose logs > system.log
+# Backup configuration
+tar -czf vision-pipeline-backup.tar.gz .env docker-compose.yml models/ logs/
 
-# Use external log aggregation
-# Configure logging driver in docker-compose.yml
+# Backup virtual environment (optional)
+tar -czf venv-backup.tar.gz models/yolo11_env/
 ```
 
-## Security Considerations
+## Production Considerations
 
-### Production Deployment
-- Change default ports
-- Configure proper CORS settings
-- Use environment secrets
-- Enable TLS/SSL
-- Restrict network access
+### Security
+- Change default ports in `docker-compose.yml`
+- Configure proper CORS settings in API
+- Use environment secrets for sensitive data
+- Enable TLS/SSL for external access
 
-### Example Production Configuration
-```yaml
-# docker-compose.prod.yml
-services:
-  api:
-    environment:
-      - API_HOST=0.0.0.0
-      - CORS_ORIGINS=https://yourdomain.com
-    networks:
-      - internal
-  
-  frontend:
-    environment:
-      - REACT_APP_API_BASE_URL=https://api.yourdomain.com
-```
+### Monitoring
+- Set up log aggregation (ELK stack, Grafana)
+- Monitor resource usage with `docker stats`
+- Set up health check endpoints
+- Configure alerts for service failures
 
-## Backup and Recovery
+### Scaling
+- Multiple camera inputs require separate native services
+- API and Frontend can be scaled horizontally
+- Redis can be clustered for high availability
 
-### Backup Configuration
+## Support and Maintenance
+
+### Regular Maintenance
 ```bash
-# Backup environment and docker-compose files
-tar -czf moondream-config-backup.tar.gz .env docker-compose.yml
+# Clean up Docker resources
+docker system prune
 
-# Backup model cache
-docker run --rm -v model_cache:/data -v $(pwd):/backup alpine tar czf /backup/models-backup.tar.gz -C /data .
+# Rotate logs (implement log rotation)
+# Monitor disk space in logs/ directory
+
+# Update system regularly
+brew upgrade
+pip list --outdated
 ```
 
-### Recovery
+### Getting Help
+1. Check service logs using commands above
+2. Verify system status with `./scripts/status.sh`
+3. Test API endpoints at http://localhost:8000/docs
+4. Monitor resource usage with `docker stats` and Activity Monitor
+
+## Quick Reference
+
+### Essential Commands
 ```bash
-# Restore configuration
-tar -xzf moondream-config-backup.tar.gz
+# Start everything
+./scripts/start-all.sh
 
-# Restore models
-docker run --rm -v model_cache:/data -v $(pwd):/backup alpine tar xzf /backup/models-backup.tar.gz -C /data
+# Stop everything  
+./scripts/stop-all.sh
+
+# Check status
+./scripts/status.sh
+
+# View all logs
+./scripts/logs-unified.sh
+
+# Restart native service
+pkill -f <service>_native
+source models/yolo11_env/bin/activate
+python3 services/native/<service>_native.py > logs/<service>_native.log 2>&1 &
 ```
 
-## Support
+### File Structure
+```
+Vision-Pipeline-Mac/
+├── scripts/                    # Management scripts
+│   ├── start-all.sh           # Complete startup
+│   ├── stop-all.sh            # Complete shutdown
+│   └── status.sh              # Status check
+├── services/native/           # Native Apple Silicon services
+│   ├── camera_native.py       # Camera capture
+│   ├── yolo_native.py         # Object detection
+│   └── moondream_native.py    # VLM processing
+├── models/                    # Model files and virtual env
+│   ├── yolo11_env/           # Python virtual environment
+│   ├── yolo/                 # YOLO models
+│   └── moondream/            # Moondream models
+├── logs/                     # Service logs
+├── docker-compose.yml        # Container orchestration
+└── containers/               # Docker configurations
+    └── requirements-base.txt # Python dependencies
+```
 
-For issues and questions:
-1. Check the logs using the commands above
-2. Review the API documentation at http://localhost:8000/docs
-3. Monitor system status at http://localhost:8000/status
-4. Check container health with `docker-compose ps`
+This hybrid architecture provides optimal performance for Apple Silicon Macs while maintaining clean separation between infrastructure and ML processing services.
