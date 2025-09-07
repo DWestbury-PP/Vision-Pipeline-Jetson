@@ -46,7 +46,7 @@ except Exception as e:
 import numpy as np
 import redis
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings
 
 # Import shared models from the containerized services
 from services.shared.models import FrameMetadata, FrameMessage

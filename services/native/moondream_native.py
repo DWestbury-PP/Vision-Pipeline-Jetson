@@ -53,7 +53,7 @@ sys.path.insert(0, str(moondream_path))
 
 import redis
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings
 
 # Import shared models from the containerized services
 from services.shared.models import (

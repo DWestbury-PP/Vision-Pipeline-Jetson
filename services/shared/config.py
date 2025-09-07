@@ -3,7 +3,7 @@
 import os
 from typing import Optional, Literal
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings
 
 
 class RedisConfig(BaseSettings):

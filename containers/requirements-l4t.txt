@@ -1,0 +1,27 @@
+# L4T-compatible requirements for Jetson containers
+# Based on Ubuntu 20.04 and older Python versions in L4T containers
+
+# Basic web framework - use older compatible versions
+fastapi==0.95.2
+uvicorn==0.18.3
+
+# Message bus - older compatible versions  
+redis==4.3.4
+aioredis==2.0.1
+
+# Basic utilities - compatible versions
+pydantic==1.10.12
+pillow==9.5.0
+numpy==1.24.4
+
+# Additional utilities - compatible versions
+python-multipart==0.0.6
+aiofiles==23.2.0
+websockets==11.0.2
+
+# CV/ML packages - compatible versions
+ultralytics==8.0.196
+transformers==4.33.3
+
+# Note: OpenCV is pre-installed in L4T containers, no need to install via pip
+# Note: pydantic-settings not available in older versions, using regular pydantic
