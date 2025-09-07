@@ -49,47 +49,6 @@ Camera → Redis → YOLO11 ───┐
                      └──── Chat Requests ←─────┘
 ```
 
-**Why Hybrid?** Docker Desktop on macOS doesn't support GPU access, so ML models run natively to leverage Apple Silicon's Metal Performance Shaders while infrastructure services run in containers for easy management.
-
-## Prerequisites
-
-- **macOS**: Monterey (12.0) or later
-- **Hardware**: Apple Silicon Mac (M1/M2/M3/M4)
-- **Python**: 3.9 or later
-- **Docker Desktop**: Latest version for Mac
-- **Storage**: ~8GB free disk space for models
-- **Memory**: 8GB RAM minimum, 16GB recommended
-
-## Quick Start
-
-```bash
-# 1. Clone repository
-git clone https://github.com/DWestbury-PP/Vision-Pipeline-Mac.git
-cd Vision-Pipeline-Mac
-
-# 2. Download models
-mkdir -p models/moondream models/yolo
-cd models/moondream
-git lfs install
-git clone https://huggingface.co/vikhyatk/moondream2
-cd ../..
-
-# 3. Setup Python environment
-python3 -m venv models/yolo11_env
-source models/yolo11_env/bin/activate
-pip install --upgrade pip
-pip install opencv-python-headless pillow numpy
-pip install ultralytics torch torchvision
-pip install redis pydantic pydantic-settings
-pip install transformers accelerate
-
-# 4. Start the pipeline
-./scripts/start-all.sh
-
-# 5. Access the application
-open http://localhost:3000
-```
-
 ## Usage
 
 ### **Control Interface**
