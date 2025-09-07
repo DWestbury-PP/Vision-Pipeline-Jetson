@@ -45,7 +45,7 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - CAMERA_TYPE=jetson_csi
+      - CAMERA_TYPE=mock
       - CAMERA_INDEX=0
       - LOG_LEVEL=INFO
     depends_on:
