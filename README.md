@@ -1,30 +1,30 @@
-# Vision Pipeline Mac
+# Vision Pipeline Jetson
 
-A high-performance, modular computer vision pipeline optimized for **Apple Silicon Macs**. Features real-time object detection (YOLO11) and Vision Language Model capabilities (Moondream2) with a hybrid architecture that leverages native GPU acceleration for maximum performance.
+A high-performance, fully containerized computer vision pipeline optimized for **NVIDIA Jetson devices**. Features real-time object detection (YOLO11) and Vision Language Model capabilities (Moondream2) with CUDA GPU acceleration for edge computing applications.
 
 ![Status](https://img.shields.io/badge/status-production-success.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-required-blue.svg)
-![Platform](https://img.shields.io/badge/platform-macOS%20(Apple%20Silicon)-success.svg)
+![Platform](https://img.shields.io/badge/platform-NVIDIA%20Jetson-success.svg)
 
 ## Vision Pipeline in Action
 
-![Vision Pipeline Mac UI](docs/Screen-Capture.png)
+![Vision Pipeline Jetson UI](docs/Screen-Capture.png)
 
-The interface demonstrates the **hybrid architecture**: fast YOLO detection (green bounding boxes) providing immediate object recognition, while the VLM chat delivers rich, contextual understanding of the scene. Optimized for Apple Silicon's Metal Performance Shaders.
+The interface demonstrates the **containerized architecture**: fast YOLO detection (green bounding boxes) providing immediate object recognition, while the VLM chat delivers rich, contextual understanding of the scene. Optimized for NVIDIA Jetson's CUDA acceleration.
 
 ## Key Features
 
-### **Hybrid Architecture for Apple Silicon**
-- **Native GPU Acceleration**: YOLO11 and Moondream2 leverage Metal Performance Shaders
-- **Containerized Infrastructure**: Redis, API, and Frontend run in Docker
-- **Optimized Performance**: ~6 FPS YOLO detection, 2-3s VLM responses
+### **Fully Containerized Architecture for NVIDIA Jetson**
+- **CUDA GPU Acceleration**: YOLO11 and Moondream2 leverage NVIDIA GPU through Docker runtime
+- **Complete Containerization**: All services run in Docker with GPU access
+- **Edge-Optimized Performance**: ~10-30 FPS YOLO detection, 1-2s VLM responses
 
 ### **Real-Time Vision Pipeline**
-- **Live Camera Feed**: Apple Studio Display, USB webcams, built-in cameras
+- **Live Camera Feed**: CSI cameras (IMX219-83 Stereo), USB webcams, IP cameras
 - **Interactive Bounding Boxes**: Real-time object detection with confidence scores
 - **Natural Language Interface**: Chat with the AI about what it sees
-- **Modern Dark UI**: Professional interface optimized for Mac users
+- **Modern Dark UI**: Professional interface optimized for edge deployment
 
 ### **Scalable Messaging Architecture**
 - **Redis Pub/Sub**: High-performance message bus with frame compression
@@ -34,26 +34,12 @@ The interface demonstrates the **hybrid architecture**: fast YOLO detection (gre
 
 ## System Requirements
 
-### **Apple Silicon Mac (M1/M2/M3/M4)**
-- **macOS**: Monterey (12.0) or later
-- **Memory**: 16GB RAM recommended (8GB minimum)
-- **Storage**: 8GB free space for models
-- **Camera**: Built-in, Apple Studio Display, or USB webcam
-- **GPU**: Automatic Metal Performance Shaders acceleration
-
-## Architecture Overview
-
-### **Hybrid Architecture**
-```
-┌─────────────────┐    ┌──────────────────┐
-│   Docker        │    │   Native macOS   │
-│                 │    │                  │
-│ • Redis         │◄──►│ • Camera         │
-│ • API           │    │ • YOLO11 (MPS)   │
-│ • Frontend      │    │ • Moondream2     │
-│ • Fusion        │    │                  │
-└─────────────────┘    └──────────────────┘
-```
+### **NVIDIA Jetson Device**
+- **JetPack**: 4.6+ (Jetson Nano) or 5.0+ (Xavier/Orin)
+- **Memory**: 4GB+ RAM (8GB+ recommended for Xavier/Orin)
+- **Storage**: 32GB+ microSD/eMMC (64GB+ recommended)
+- **Camera**: CSI camera (IMX219-83 Stereo Binocular), USB webcam, or IP camera
+- **GPU**: Automatic NVIDIA CUDA acceleration through Docker runtime
 
 ### **Message Flow**
 ```
@@ -189,21 +175,21 @@ export TASK_PLANNING_FPS=0.5
 
 ## Performance Benchmarks
 
-### **Apple Silicon Performance**
+### **NVIDIA Jetson Performance**
 
-| **Mac Model** | **YOLO11** | **Moondream2** | **Memory Usage** |
-|---------------|------------|----------------|------------------|
-| **M1 Mac** | 25-30ms | 3-4 seconds | ~3.5GB |
-| **M1 Pro/Max** | 20-25ms | 2.5-3 seconds | ~4GB |
-| **M2** | 18-22ms | 2-2.5 seconds | ~4GB |
-| **M2 Pro/Max** | 15-20ms | 1.5-2 seconds | ~4.5GB |
-| **M3/M4** | 12-18ms | 1-1.5 seconds | ~4.5GB |
+| **Jetson Model** | **YOLO11** | **Moondream2** | **Memory Usage** |
+|------------------|------------|----------------|------------------|
+| **Nano (4GB)** | 40-60ms | 2-3 seconds | ~2.5GB |
+| **Xavier NX** | 20-30ms | 1.5-2 seconds | ~3GB |
+| **Xavier AGX** | 15-25ms | 1-1.5 seconds | ~4GB |
+| **Orin Nano** | 15-20ms | 1-1.5 seconds | ~3GB |
+| **Orin NX/AGX** | 10-15ms | 0.8-1.2 seconds | ~4-6GB |
 
 ### **Real-World Performance**
-- **Camera Capture**: 6 FPS (configurable)
-- **YOLO Detection**: ~50 FPS capable (limited by camera)
-- **End-to-end Latency**: <100ms (detection), 1-3s (VLM)
-- **Concurrent Processing**: Both models run simultaneously without interference
+- **Camera Capture**: 10-30 FPS (device dependent, configurable)
+- **YOLO Detection**: ~30-100 FPS capable (device dependent)
+- **End-to-end Latency**: <50ms (detection), 1-2s (VLM)
+- **Concurrent Processing**: Both models run simultaneously with CUDA streams
 
 ## Extending the Pipeline
 
@@ -215,7 +201,7 @@ The modular architecture makes it easy to add new vision models:
 # 1. Create new native service (services/native/new_model_native.py)
 class NewModelService:
     def __init__(self):
-        self.device = "mps"  # Apple Silicon GPU
+        self.device = "cuda"  # NVIDIA Jetson GPU
         self.frame_stride = 5  # Process every 5th frame
         
     async def process_frame(self, frame, metadata):
@@ -232,9 +218,9 @@ class NewModelService:
 ./scripts/start-native-newmodel.sh
 ```
 
-### **Recommended Processing Rates for Mac**
+### **Recommended Processing Rates for Jetson**
 
-| **Vision Task** | **Apple Silicon Rate** | **Use Case** |
+| **Vision Task** | **NVIDIA Jetson Rate** | **Use Case** |
 |----------------|------------------------|--------------|
 | Object Detection | 30-60 FPS | Real-time tracking |
 | Scene Understanding | 1-3 FPS | Context analysis |
@@ -245,13 +231,13 @@ class NewModelService:
 ## Project Structure
 
 ```
-Vision-Pipeline-Mac/
+Vision-Pipeline-Jetson/
 ├── services/
 │   ├── api/                 # FastAPI + WebSocket server
-│   ├── native/              # Apple Silicon native services
-│   │   ├── camera_native.py
-│   │   ├── yolo_native.py
-│   │   └── moondream_native.py
+│   ├── cv_services/         # CUDA-accelerated computer vision services
+│   │   ├── camera_service.py
+│   │   ├── yolo_service.py
+│   │   └── moondream_service.py
 │   ├── message_bus/         # Redis pub/sub implementation
 │   └── shared/              # Common models and utilities
 ├── frontend/                # React + TypeScript UI
@@ -261,7 +247,7 @@ Vision-Pipeline-Mac/
 ├── models/                  # Model storage (gitignored)
 │   ├── moondream/           # Moondream2 VLM
 │   ├── yolo/                # YOLO11 models
-│   └── yolo11_env/          # Python virtual environment
+│   └── jetson_models/       # Optimized models for Jetson
 └── docker-compose.yml       # Hybrid architecture orchestration
 ```
 
@@ -288,23 +274,25 @@ docker exec moondream-redis redis-cli MONITOR
 
 **Camera Not Detected:**
 ```bash
-# Check camera permissions (macOS)
-# System Settings → Privacy & Security → Camera
+# Check camera permissions (Jetson)
+# Ensure camera is properly connected to CSI port
 
-# Test camera access
-python3 -c "import cv2; print(cv2.VideoCapture(0).read())"
+# Test CSI camera access
+v4l2-ctl --list-devices
+gst-launch-1.0 nvarguscamerasrc ! nvoverlaysink
 
 # Try different camera indices
-export CAMERA_INDEX=1  # or 2, 3, etc.
+export CAMERA_INDEX=0  # CSI camera usually 0
 ```
 
 **GPU Not Accessible:**
 ```bash
-# Apple Silicon - verify MPS
-python3 -c "import torch; print(torch.backends.mps.is_available())"
+# NVIDIA Jetson - verify CUDA
+nvidia-smi
+jetson_clocks --show
 
-# NVIDIA - verify CUDA
-docker run --runtime=nvidia --rm nvidia/cuda:11.0-base nvidia-smi
+# Test CUDA in container
+docker run --runtime=nvidia --rm nvcr.io/nvidia/l4t-pytorch:r35.2.1-pth2.0-py3 python3 -c "import torch; print(torch.cuda.is_available())"
 ```
 
 **Model Loading Failures:**
@@ -343,7 +331,7 @@ export VLM_FRAME_STRIDE=5
 
 ### **Resource-Constrained Mode**
 ```bash
-# For older Macs or limited memory
+# For Jetson Nano or limited memory
 export CAMERA_FPS=3
 export YOLO_FRAME_STRIDE=2
 export VLM_FRAME_STRIDE=15
@@ -352,19 +340,19 @@ export VLM_FRAME_STRIDE=15
 
 ## Contributing
 
-We welcome contributions! This project demonstrates high-performance computer vision on Apple Silicon.
+We welcome contributions! This project demonstrates high-performance computer vision on NVIDIA Jetson edge devices.
 
 **Priority Areas:**
 - Additional vision models (depth estimation, segmentation, pose detection)
-- Multi-camera support for Apple Studio Display + webcam
-- Performance optimizations for different Mac models
+- Multi-camera support for CSI + USB cameras
+- Performance optimizations for different Jetson models
 - UI/UX improvements for the React frontend
-- Integration with Core ML models
+- TensorRT optimization and quantization
 
 **Development Process:**
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Test on your Apple Silicon Mac
+3. Test on your NVIDIA Jetson device
 4. Commit changes (`git commit -m 'Add amazing feature'`)
 5. Push to branch (`git push origin feature/amazing-feature`)
 6. Open a Pull Request
@@ -388,8 +376,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support & Community
 
-- **Issues**: [GitHub Issues](https://github.com/DWestbury-PP/Vision-Pipeline-Mac/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/DWestbury-PP/Vision-Pipeline-Mac/discussions)
-- **Documentation**: [Project Wiki](https://github.com/DWestbury-PP/Vision-Pipeline-Mac/wiki)
+- **Issues**: [GitHub Issues](https://github.com/DWestbury-PP/Vision-Pipeline-Jetson/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/DWestbury-PP/Vision-Pipeline-Jetson/discussions)
+- **Documentation**: [Project Wiki](https://github.com/DWestbury-PP/Vision-Pipeline-Jetson/wiki)
 
 ---

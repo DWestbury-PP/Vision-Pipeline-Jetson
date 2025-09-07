@@ -1,8 +1,8 @@
-# Vision Pipeline Mac Architecture
+# Vision Pipeline Jetson Architecture
 
-## Hybrid Architecture for Apple Silicon
+## Fully Containerized Architecture for NVIDIA Jetson
 
-This project uses a **hybrid architecture** specifically optimized for Apple Silicon Macs, combining Docker containers with native services to leverage GPU acceleration.
+This project uses a **fully containerized architecture** specifically optimized for NVIDIA Jetson devices, with all services running in Docker containers that have access to CUDA GPU acceleration.
 
 ### Architecture Overview
 
@@ -12,16 +12,16 @@ This project uses a **hybrid architecture** specifically optimized for Apple Sil
 - `frontend`: React-based web interface
 - `fusion`: Combines outputs from detection services
 
-**Native Services (for GPU access):**
-- `camera`: Camera capture and frame publishing
-- `yolo`: YOLO11 object detection using Apple Silicon GPU
-- `moondream`: Moondream2 VLM using Apple Silicon GPU
+**Containerized CV Services (with GPU access):**
+- `camera`: Camera capture and frame publishing with CSI/USB support
+- `yolo`: YOLO11 object detection using NVIDIA CUDA GPU
+- `moondream`: Moondream2 VLM using NVIDIA CUDA GPU
 
-**Why Hybrid?**
-- Apple Silicon GPU access requires native execution
-- Docker Desktop on macOS runs in a Linux VM without Metal Performance Shaders access
-- Native services leverage Apple's Metal Performance Shaders for maximum performance
-- Containerized infrastructure services provide easy management and portability
+**Why Fully Containerized?**
+- NVIDIA provides Docker runtime support for GPU access on Jetson
+- All services can run in containers while maintaining CUDA acceleration
+- Simplified deployment and management with complete containerization
+- Better resource isolation and scalability
 
 ### Service Communication
 
@@ -44,22 +44,22 @@ All services communicate via **Redis pub/sub channels**:
 
 ### Performance Characteristics
 
-**Apple Silicon Performance:**
-- Camera: ~6 FPS capture rate
-- YOLO: ~50 FPS capability (limited by camera)
-- Moondream: 1-3 seconds per VLM query
-- End-to-end latency: <100ms (detection), 1-3s (VLM)
+**NVIDIA Jetson Performance:**
+- Camera: ~10-30 FPS capture rate (device dependent)
+- YOLO: ~30-100 FPS capability (device dependent)
+- Moondream: 1-2 seconds per VLM query
+- End-to-end latency: <50ms (detection), 1-2s (VLM)
 
-**Scaling by Mac Model:**
-- M1: Good performance for development
-- M1 Pro/Max: Excellent for production use
-- M2/M3/M4: Optimal performance across all models
+**Scaling by Jetson Model:**
+- Nano: Good performance for development and lightweight applications
+- Xavier NX: Excellent for production edge deployment
+- Xavier AGX/Orin: Optimal performance for demanding applications
 
 ## File Structure
 
 ```
-Vision-Pipeline-Mac/
-├── docker-compose.yml          # Hybrid architecture configuration
+Vision-Pipeline-Jetson/
+├── docker-compose.yml          # Containerized architecture configuration
 ├── scripts/
 │   ├── start-all.sh            # Complete startup script
 │   ├── quick-start.sh          # Fast startup script
@@ -67,10 +67,10 @@ Vision-Pipeline-Mac/
 │   └── status.sh               # Status check
 ├── services/
 │   ├── api/                    # FastAPI service (container)
-│   ├── native/                 # Native services (Apple Silicon)
-│   │   ├── camera_native.py    # Camera capture
-│   │   ├── yolo_native.py      # YOLO detection
-│   │   └── moondream_native.py # VLM processing
+│   ├── cv_services/            # Computer vision services (containers with CUDA)
+│   │   ├── camera_service.py   # Camera capture with CSI support
+│   │   ├── yolo_service.py     # YOLO detection with CUDA
+│   │   └── moondream_service.py # VLM processing with CUDA
 │   ├── message_bus/            # Redis pub/sub implementation
 │   └── shared/                 # Common models/utils
 ├── frontend/                   # React UI (container)
@@ -78,7 +78,7 @@ Vision-Pipeline-Mac/
 └── models/                     # Model storage
     ├── moondream/              # Moondream2 VLM
     ├── yolo/                   # YOLO11 models
-    └── yolo11_env/             # Python environment
+    └── jetson_models/          # Optimized models for Jetson
 ```
 
-This architecture provides optimal performance specifically for Apple Silicon Macs by leveraging native GPU acceleration while maintaining clean separation of concerns.
+This architecture provides optimal performance specifically for NVIDIA Jetson devices by leveraging containerized CUDA GPU acceleration while maintaining clean separation of concerns.

@@ -1,14 +1,13 @@
-# Vision Pipeline Mac - Docker Compose Configuration
+# Vision Pipeline Jetson - Docker Compose Configuration
 # 
-# HYBRID ARCHITECTURE FOR APPLE SILICON:
-# - Redis, API, Frontend, Fusion: Run in Docker containers
-# - Camera, YOLO, Moondream: Run natively for Metal Performance Shaders GPU access
+# FULLY CONTAINERIZED ARCHITECTURE FOR NVIDIA JETSON:
+# - All services run in Docker containers with CUDA GPU access
+# - NVIDIA runtime provides GPU acceleration to containers
 #
 # Usage:
-#   ./scripts/start-all.sh (manages both containers and native services)
-#   ./scripts/quick-start.sh (minimal output)
+#   docker-compose up --build (starts all containerized services)
 #
-# Note: This compose file requires DOCKER_BUILDKIT=0 to properly resolve local base images
+# Note: Requires NVIDIA Docker runtime to be properly configured
 
 services:
   # Redis message bus
@@ -30,76 +29,80 @@ services:
       - vision-pipeline-network
 
   # Camera capture service
-  # NOTE: Runs natively on Apple Silicon for optimal performance
-  # Native service managed by ./scripts/start-all.sh
-  # camera:
-  #   build:
-  #     context: .
-  #     dockerfile: containers/camera/Dockerfile.fast
-  #   container_name: vision-pipeline-camera
-  #   environment:
-  #     - REDIS_HOST=redis
-  #     - REDIS_PORT=6379
-  #     - CAMERA_TYPE=mac_studio
-  #     - CAMERA_INDEX=0
-  #     - LOG_LEVEL=INFO
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #   restart: unless-stopped
-  #   networks:
-  #     - vision-pipeline-network
-  #   # For camera access on macOS
-  #   privileged: true
-  #   volumes:
-  #     - /dev:/dev
+  # NOTE: Now runs in container with CSI/USB camera support
+  camera:
+    build:
+      context: .
+      dockerfile: containers/camera/Dockerfile.jetson
+    container_name: vision-pipeline-camera
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CAMERA_TYPE=jetson_csi
+      - CAMERA_INDEX=0
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - vision-pipeline-network
+    # For camera access on Jetson
+    privileged: true
+    volumes:
+      - /dev:/dev
+      - /tmp/argus_socket:/tmp/argus_socket
 
   # YOLO object detection service
-  # NOTE: Runs natively on Apple Silicon for Metal Performance Shaders GPU access
-  # Native service managed by ./scripts/start-all.sh
-  # yolo:
-  #   build:
-  #     context: .
-  #     dockerfile: containers/yolo/Dockerfile.fast
-  #   container_name: vision-pipeline-yolo
-  #   environment:
-  #     - REDIS_HOST=redis
-  #     - REDIS_PORT=6379
-  #     - YOLO_MODEL=yolo11n.pt
-  #     - YOLO_DEVICE=mps
-  #     - LOG_LEVEL=INFO
-  #   volumes:
-  #     - ./models/yolo:/app/models/yolo
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #   restart: unless-stopped
-  #   networks:
-  #     - vision-pipeline-network
+  # NOTE: Now runs in container with CUDA GPU acceleration
+  yolo:
+    build:
+      context: .
+      dockerfile: containers/yolo/Dockerfile.jetson
+    container_name: vision-pipeline-yolo
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - YOLO_MODEL=yolo11n.pt
+      - YOLO_DEVICE=cuda
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./models/yolo:/app/models/yolo
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - vision-pipeline-network
 
   # Moondream VLM service
-  # NOTE: Runs natively on Apple Silicon for Metal Performance Shaders GPU access
-  # Native service managed by ./scripts/start-all.sh
-  # moondream:
-  #   build:
-  #     context: .
-  #     dockerfile: containers/moondream/Dockerfile.fast
-  #   container_name: vision-pipeline-vlm
-  #   environment:
-  #     - REDIS_HOST=redis
-  #     - REDIS_PORT=6379
-  #     - MOONDREAM_MODEL=vikhyatk/moondream2
-  #     - MOONDREAM_DEVICE=mps
-  #     - VLM_FRAME_STRIDE=10
-  #     - LOG_LEVEL=INFO
-  #   # volumes:
-  #   #   - moondream_cache:/home/appuser/.cache/huggingface
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #   restart: unless-stopped
-  #   networks:
-  #     - vision-pipeline-network
+  # NOTE: Now runs in container with CUDA GPU acceleration
+  moondream:
+    build:
+      context: .
+      dockerfile: containers/moondream/Dockerfile.jetson
+    container_name: vision-pipeline-vlm
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MOONDREAM_MODEL=vikhyatk/moondream2
+      - MOONDREAM_DEVICE=cuda
+      - VLM_FRAME_STRIDE=10
+      - LOG_LEVEL=INFO
+    volumes:
+      - moondream_cache:/home/appuser/.cache/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - vision-pipeline-network
 
   # Fusion service
   fusion:
@@ -114,7 +117,10 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      # NOTE: yolo and moondream dependencies removed - they run natively on Apple Silicon
+      # Dependencies on containerized CV services
+      - camera
+      - yolo
+      - moondream
     restart: unless-stopped
     networks:
       - vision-pipeline-network
@@ -160,6 +166,7 @@ services:
 
 volumes:
   redis_data:
+  moondream_cache:
 
 networks:
   vision-pipeline-network:

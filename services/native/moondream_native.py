@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Native Moondream service for macOS using the actual Moondream2 model.
-Runs outside of containers to access Apple Silicon GPU.
+Containerized Moondream service for NVIDIA Jetson using the actual Moondream2 model.
+Runs inside Docker containers with NVIDIA runtime for CUDA GPU acceleration.
 """
 
 import asyncio
@@ -58,7 +58,7 @@ class NativeMoondreamConfig(BaseSettings):
 
 
 class NativeMoondreamService:
-    """Native Moondream service using the actual Moondream2 model."""
+    """Containerized Moondream service using the actual Moondream2 model with CUDA acceleration."""
     
     def __init__(self):
         self.config = NativeMoondreamConfig()

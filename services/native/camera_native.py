@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Native Camera service for macOS with direct hardware access.
-Runs outside of containers to access Apple Studio Display camera.
+Containerized Camera service for NVIDIA Jetson with CSI camera support.
+Runs inside Docker containers with access to Jetson CSI and USB cameras.
 """
 
 import asyncio

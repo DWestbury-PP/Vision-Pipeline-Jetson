@@ -1,12 +1,12 @@
-# Vision Pipeline Mac Deployment Guide
+# Vision Pipeline Jetson Deployment Guide
 
 ## Overview
 
-This guide covers deploying the complete Vision Pipeline using a **hybrid architecture** specifically optimized for Apple Silicon Macs. The system combines Docker containers with native services to leverage GPU acceleration while maintaining clean separation of concerns.
+This guide covers deploying the complete Vision Pipeline using a **fully containerized architecture** specifically optimized for NVIDIA Jetson devices. All services run in Docker containers with full CUDA GPU acceleration support.
 
 ## Architecture
 
-### Hybrid Design
+### Containerized Design
 
 **Containerized Services (Infrastructure):**
 - `redis`: Message bus for inter-service communication
@@ -14,25 +14,25 @@ This guide covers deploying the complete Vision Pipeline using a **hybrid archit
 - `frontend`: React-based web interface
 - `fusion`: Combines outputs from detection services
 
-**Native Services (Apple Silicon GPU Access):**
-- `camera_native.py`: Camera capture and frame publishing
-- `yolo_native.py`: YOLO11 object detection using Apple Silicon GPU
-- `moondream_native.py`: Moondream2 VLM using Apple Silicon GPU
+**Containerized CV Services (NVIDIA CUDA GPU Access):**
+- `camera_service.py`: Camera capture with CSI/USB support
+- `yolo_service.py`: YOLO11 object detection using NVIDIA CUDA GPU
+- `moondream_service.py`: Moondream2 VLM using NVIDIA CUDA GPU
 
-### Why Hybrid?
+### Why Fully Containerized?
 
-- Apple Silicon GPU access requires native execution
-- Docker Desktop on macOS runs in a Linux VM without Metal Performance Shaders access
-- Native services leverage Apple's Metal Performance Shaders for maximum performance
-- Containerized infrastructure services provide easy management and portability
+- NVIDIA provides Docker runtime support for GPU access on Jetson devices
+- All services can run in containers while maintaining full CUDA acceleration
+- Simplified deployment with no native service management required
+- Better resource isolation and easier scaling
 
 ## Prerequisites
 
-- **macOS** with Apple Silicon (M1/M2/M3/M4 recommended)
-- **Docker Desktop** 20.10+ with Docker Compose 2.0+
-- **Python 3.13+** (via Homebrew recommended)
-- **At least 8GB RAM** (16GB recommended)
-- **Compatible camera** (Mac Studio Display camera supported out of the box)
+- **JetPack** 4.6+ (Nano) or 5.0+ (Xavier/Orin)
+- **Docker** with NVIDIA runtime support
+- **NVIDIA Jetson** device (Nano, Xavier NX/AGX, or Orin)
+- **At least 4GB RAM** (8GB+ recommended)
+- **Compatible camera** (CSI camera like IMX219-83 Stereo Binocular or USB webcam)
 
 ## Complete Setup Guide
 
@@ -40,39 +40,49 @@ This guide covers deploying the complete Vision Pipeline using a **hybrid archit
 
 ```bash
 git clone <repository-url>
-cd Vision-Pipeline-Mac
+cd Vision-Pipeline-Jetson
 ```
 
-### Step 2: Install System Dependencies
+### Step 2: Configure NVIDIA Docker Runtime
 
 ```bash
-# Install Python 3.13 via Homebrew (if not already installed)
-brew install python@3.13
+# Install NVIDIA Docker runtime (if not already installed)
+sudo apt update
+sudo apt install -y nvidia-docker2
 
-# Verify Python installation
-python3 --version  # Should show 3.13.x
+# Configure Docker daemon
+sudo nano /etc/docker/daemon.json
+# Add: {"default-runtime": "nvidia", "runtimes": {"nvidia": {"path": "nvidia-container-runtime", "runtimeArgs": []}}}
+
+# Restart Docker
+sudo systemctl restart docker
+
+# Verify NVIDIA runtime
+docker run --runtime=nvidia --rm nvcr.io/nvidia/l4t-base:r35.2.1 nvidia-smi
 ```
 
-### Step 3: Create and Setup Virtual Environment
+### Step 3: Optimize Jetson Performance
 
 ```bash
-# Create virtual environment for native services
-python3 -m venv models/yolo11_env
+# Set maximum performance mode
+sudo jetson_clocks
+sudo nvpmodel -m 0  # Maximum performance mode (if available)
 
-# Activate virtual environment
-source models/yolo11_env/bin/activate
-
-# Install all required dependencies
-pip install -r containers/requirements-base.txt
+# For Jetson Nano - increase swap space
+if [[ $(cat /proc/device-tree/model) == *"Nano"* ]]; then
+    sudo fallocate -l 4G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+fi
 ```
 
-**Expected packages installed:**
-- PyTorch with MPS support
-- OpenCV for camera handling
-- Ultralytics YOLO
-- Transformers for Moondream
-- Redis client
-- FastAPI and other API dependencies
+**System optimizations applied:**
+- Maximum CPU/GPU clock speeds
+- Increased swap space (Nano only)
+- NVIDIA Docker runtime configured
+- Performance mode enabled
 
 ### Step 4: Setup Model Files
 
@@ -129,11 +139,14 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 ```
 
-### Step 6: Build Base Docker Image
+### Step 6: Build and Start All Services
 
 ```bash
-# Build the base image (first time setup)
-./scripts/build-base.sh
+# Build and start all containerized services
+docker-compose up --build -d
+
+# Monitor startup logs
+docker-compose logs -f
 ```
 
 ### Step 7: Start the Complete System

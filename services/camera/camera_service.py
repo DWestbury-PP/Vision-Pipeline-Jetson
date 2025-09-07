@@ -5,7 +5,8 @@ import time
 from typing import Optional
 
 from .base import CameraFactory
-from . import mac_studio  # Register camera implementations
+from . import mac_studio  # Register Mac camera implementations
+from . import jetson_csi  # Register Jetson camera implementations
 from ..message_bus.redis_bus import RedisMessageBus
 from ..message_bus.base import MessageBusPublisher, Channels
 from ..shared.models import SystemStatus, StatusMessage

@@ -18,7 +18,7 @@ class RedisConfig(BaseSettings):
 
 class CameraConfig(BaseSettings):
     """Camera configuration."""
-    type: Literal["mac_studio", "jetson", "usb"] = Field(default="mac_studio", env="CAMERA_TYPE")
+    type: Literal["mac_studio", "jetson_csi", "usb"] = Field(default="jetson_csi", env="CAMERA_TYPE")
     index: int = Field(default=0, env="CAMERA_INDEX")
     width: int = Field(default=1920, env="CAMERA_WIDTH")
     height: int = Field(default=1080, env="CAMERA_HEIGHT")
@@ -94,21 +94,22 @@ class Config(BaseSettings):
     redis_db: int = Field(default=0, env="REDIS_DB")
     
     # Camera configuration
-    camera_type: Literal["mac_studio", "jetson", "usb"] = Field(default="mac_studio", env="CAMERA_TYPE")
+    camera_type: Literal["mac_studio", "jetson_csi", "usb"] = Field(default="jetson_csi", env="CAMERA_TYPE")
     camera_index: int = Field(default=0, env="CAMERA_INDEX")
     camera_width: int = Field(default=1920, env="CAMERA_WIDTH")
     camera_height: int = Field(default=1080, env="CAMERA_HEIGHT")
     camera_fps: int = Field(default=30, env="CAMERA_FPS")
+    csi_sensor_mode: int = Field(default=0, env="CSI_SENSOR_MODE")
     
     # YOLO configuration
     yolo_model: str = Field(default="yolo11n.pt", env="YOLO_MODEL")
     yolo_confidence: float = Field(default=0.5, env="YOLO_CONFIDENCE")
-    yolo_device: str = Field(default="mps", env="YOLO_DEVICE")
+    yolo_device: str = Field(default="cuda", env="YOLO_DEVICE")
     yolo_frame_stride: int = Field(default=1, env="YOLO_FRAME_STRIDE")
     
     # Moondream VLM configuration
     moondream_model: str = Field(default="vikhyatk/moondream2", env="MOONDREAM_MODEL")
-    moondream_device: str = Field(default="mps", env="MOONDREAM_DEVICE")
+    moondream_device: str = Field(default="cuda", env="MOONDREAM_DEVICE")
     moondream_instances: int = Field(default=2, env="MOONDREAM_INSTANCES")
     moondream_batch_size: int = Field(default=1, env="MOONDREAM_BATCH_SIZE")
     vlm_frame_stride: int = Field(default=10, env="VLM_FRAME_STRIDE")
