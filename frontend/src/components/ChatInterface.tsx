@@ -61,7 +61,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <Card className="h-full flex flex-col max-h-full">
+    <Card className="h-full flex flex-col overflow-hidden">
       <CardHeader className="flex-shrink-0">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -79,9 +79,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           />
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col flex-1 p-0 min-h-0">
+      <CardContent className="flex flex-col flex-1 p-0 overflow-hidden">
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground">
               <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />

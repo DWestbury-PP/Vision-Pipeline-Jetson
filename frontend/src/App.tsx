@@ -250,9 +250,9 @@ function App() {
           </div>
           
           {/* Right Panel */}
-          <div className="flex flex-col space-y-6">
+          <div className="flex flex-col space-y-6 h-full max-h-full overflow-hidden">
             {/* YOLO Detection Panel */}
-            <Card>
+            <Card className="flex-shrink-0">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -302,7 +302,7 @@ function App() {
             </Card>
             
             {/* Chat Interface */}
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 max-h-full overflow-hidden">
               <ChatInterface
                 messages={chatMessages}
                 onSendMessage={handleSendChatMessage}
