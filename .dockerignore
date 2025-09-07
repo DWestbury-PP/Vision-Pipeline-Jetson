@@ -1,4 +1,4 @@
-# Ignore large model files and caches
+# Ignore large model files and caches - models will be bind-mounted
 models/
 *.pt
 *.pth
@@ -74,6 +74,7 @@ scripts/build-base.sh
 scripts/logs-unified.sh
 scripts/quick-start.sh
 scripts/setup-jetson.sh
+scripts/setup-models.sh
 scripts/start-all.sh
 scripts/status.sh
 scripts/stop-all.sh

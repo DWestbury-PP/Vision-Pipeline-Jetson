@@ -40,10 +40,7 @@ COPY services/ ./services/
 COPY scripts/ ./scripts/
 COPY env.example .env
 
-# Copy YOLO model
-COPY models/yolo/ ./models/yolo/
-
-# Create models directory
+# Create models directory (models will be bind-mounted at runtime)
 RUN mkdir -p /app/models/yolo && \
     chown -R appuser:appuser /app
 

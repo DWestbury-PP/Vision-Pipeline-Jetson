@@ -44,10 +44,7 @@ COPY services/ ./services/
 COPY scripts/ ./scripts/
 COPY env.example .env
 
-# Copy Moondream model
-COPY models/moondream/ ./models/moondream/
-
-# Create models directory and set up HuggingFace cache
+# Create models directory and set up HuggingFace cache (models will be bind-mounted at runtime)
 RUN mkdir -p /app/models/moondream && \
     chown -R appuser:appuser /app
 

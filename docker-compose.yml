@@ -112,6 +112,7 @@ services:
       - LOG_LEVEL=INFO
     volumes:
       - moondream_cache:/home/appuser/.cache/huggingface
+      - ./models/moondream:/app/models/moondream
     depends_on:
       redis:
         condition: service_healthy
