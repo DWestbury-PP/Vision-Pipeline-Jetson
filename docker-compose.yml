@@ -1,7 +1,18 @@
-# Fast development Docker Compose using optimized base images
+# Moondream Vision Pipeline - Docker Compose Configuration
+# 
+# HYBRID ARCHITECTURE:
+# - Redis, API, Frontend, Fusion: Run in Docker containers
+# - Camera, YOLO, Moondream: Run natively on Apple Silicon for GPU access
+#
+# For Apple Silicon development:
+#   Use: ./scripts/start-all.sh (manages both containers and native services)
+#
+# For other architectures (Jetson Nano, Thor, etc.):
+#   1. Uncomment the camera, yolo, and moondream services below
+#   2. Uncomment their dependencies in the fusion service
+#   3. Use: docker-compose up --build
+#
 # Note: This compose file requires DOCKER_BUILDKIT=0 to properly resolve local base images
-# Use: DOCKER_BUILDKIT=0 docker-compose up --build
-# Or use: ./scripts/fast-dev.sh (which sets this automatically)
 
 services:
   # Redis message bus
@@ -23,70 +34,76 @@ services:
       - moondream-network
 
   # Camera capture service
-  camera:
-    build:
-      context: .
-      dockerfile: containers/camera/Dockerfile.fast
-    container_name: moondream-camera
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - CAMERA_TYPE=mac_studio
-      - CAMERA_INDEX=0
-      - LOG_LEVEL=INFO
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - moondream-network
-    # For camera access on macOS
-    privileged: true
-    volumes:
-      - /dev:/dev
+  # NOTE: Commented out for Apple Silicon development - runs natively for GPU access
+  # Uncomment for other architectures (Jetson Nano, Thor, etc.)
+  # camera:
+  #   build:
+  #     context: .
+  #     dockerfile: containers/camera/Dockerfile.fast
+  #   container_name: moondream-camera
+  #   environment:
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
+  #     - CAMERA_TYPE=mac_studio
+  #     - CAMERA_INDEX=0
+  #     - LOG_LEVEL=INFO
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   networks:
+  #     - moondream-network
+  #   # For camera access on macOS
+  #   privileged: true
+  #   volumes:
+  #     - /dev:/dev
 
   # YOLO object detection service
-  yolo:
-    build:
-      context: .
-      dockerfile: containers/yolo/Dockerfile.fast
-    container_name: moondream-yolo
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - YOLO_MODEL=yolo11n.pt
-      - YOLO_DEVICE=mps
-      - LOG_LEVEL=INFO
-    volumes:
-      - ./models/yolo:/app/models/yolo
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - moondream-network
+  # NOTE: Commented out for Apple Silicon development - runs natively for GPU access
+  # Uncomment for other architectures (Jetson Nano, Thor, etc.)
+  # yolo:
+  #   build:
+  #     context: .
+  #     dockerfile: containers/yolo/Dockerfile.fast
+  #   container_name: moondream-yolo
+  #   environment:
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
+  #     - YOLO_MODEL=yolo11n.pt
+  #     - YOLO_DEVICE=mps
+  #     - LOG_LEVEL=INFO
+  #   volumes:
+  #     - ./models/yolo:/app/models/yolo
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   networks:
+  #     - moondream-network
 
   # Moondream VLM service
-  moondream:
-    build:
-      context: .
-      dockerfile: containers/moondream/Dockerfile.fast
-    container_name: moondream-vlm
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - MOONDREAM_MODEL=vikhyatk/moondream2
-      - MOONDREAM_DEVICE=mps
-      - VLM_FRAME_STRIDE=10
-      - LOG_LEVEL=INFO
-    # volumes:
-    #   - moondream_cache:/home/appuser/.cache/huggingface
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - moondream-network
+  # NOTE: Commented out for Apple Silicon development - runs natively for GPU access
+  # Uncomment for other architectures (Jetson Nano, Thor, etc.)
+  # moondream:
+  #   build:
+  #     context: .
+  #     dockerfile: containers/moondream/Dockerfile.fast
+  #   container_name: moondream-vlm
+  #   environment:
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
+  #     - MOONDREAM_MODEL=vikhyatk/moondream2
+  #     - MOONDREAM_DEVICE=mps
+  #     - VLM_FRAME_STRIDE=10
+  #     - LOG_LEVEL=INFO
+  #   # volumes:
+  #   #   - moondream_cache:/home/appuser/.cache/huggingface
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   networks:
+  #     - moondream-network
 
   # Fusion service
   fusion:
@@ -101,10 +118,12 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      yolo:
-        condition: service_started
-      moondream:
-        condition: service_started
+      # NOTE: yolo and moondream dependencies removed - they run natively on Apple Silicon
+      # For other architectures, uncomment these dependencies:
+      # yolo:
+      #   condition: service_started
+      # moondream:
+      #   condition: service_started
     restart: unless-stopped
     networks:
       - moondream-network
