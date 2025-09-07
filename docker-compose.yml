@@ -108,7 +108,7 @@ services:
   fusion:
     build:
       context: .
-      dockerfile: containers/fusion/Dockerfile.fast
+      dockerfile: containers/fusion/Dockerfile.jetson
     container_name: vision-pipeline-fusion
     environment:
       - REDIS_HOST=redis
@@ -131,7 +131,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: containers/api/Dockerfile.fast
+      dockerfile: containers/api/Dockerfile.jetson
     container_name: vision-pipeline-api
     ports:
       - "8000:8000"
