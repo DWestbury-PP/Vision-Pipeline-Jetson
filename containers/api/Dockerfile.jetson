@@ -1,5 +1,5 @@
 # Jetson API service with FastAPI and WebSocket support
-FROM nvcr.io/nvidia/l4t-pytorch:r36.2.0-pth2.1-py3
+FROM nvcr.io/nvidia/pytorch:24.08-py3-igpu
 
 # Set working directory
 WORKDIR /app
