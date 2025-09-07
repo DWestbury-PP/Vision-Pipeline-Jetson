@@ -368,7 +368,9 @@ class NativeMoondreamService:
         """Publish VLM results to Redis."""
         try:
             import json
-            message_json = json.dumps(vlm_message.model_dump(mode='json'))
+            # Use dict() for Pydantic 1.x compatibility
+            message_dict = vlm_message.dict() if hasattr(vlm_message, 'dict') else vlm_message.model_dump(mode='json')
+            message_json = json.dumps(message_dict)
             self.redis_client.publish("msg:detection.vlm", message_json.encode('utf-8'))
             self.logger.info(f"Published VLM result for frame {vlm_message.frame_id}")
         except Exception as e:
@@ -378,7 +380,9 @@ class NativeMoondreamService:
         """Publish chat response to Redis."""
         try:
             import json
-            message_json = json.dumps(chat_response.model_dump(mode='json'))
+            # Use dict() for Pydantic 1.x compatibility
+            message_dict = chat_response.dict() if hasattr(chat_response, 'dict') else chat_response.model_dump(mode='json')
+            message_json = json.dumps(message_dict)
             self.redis_client.publish("msg:chat.responses", message_json.encode('utf-8'))
             self.logger.info(f"Published chat response")
         except Exception as e:

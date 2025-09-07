@@ -251,7 +251,9 @@ class NativeYOLOService:
         """Publish detection results to Redis."""
         try:
             import json
-            message_json = json.dumps(detection_message.model_dump(mode='json'))
+            # Use dict() for Pydantic 1.x compatibility
+            message_dict = detection_message.dict() if hasattr(detection_message, 'dict') else detection_message.model_dump(mode='json')
+            message_json = json.dumps(message_dict)
             self.redis_client.publish("msg:detection.yolo", message_json.encode('utf-8'))
             self.logger.info(f"Published detection for frame {detection_message.frame_id} to msg:detection.yolo")
         except Exception as e:

@@ -188,7 +188,8 @@ class NativeCameraService:
                 
             # Create frame package in the format expected by containerized services
             frame_package = {
-                'metadata': frame_metadata.model_dump(),
+                # Use dict() for Pydantic 1.x compatibility
+                'metadata': frame_metadata.dict() if hasattr(frame_metadata, 'dict') else frame_metadata.model_dump(),
                 'frame_data': frame.tobytes(),
                 'shape': frame.shape,
                 'dtype': str(frame.dtype),
