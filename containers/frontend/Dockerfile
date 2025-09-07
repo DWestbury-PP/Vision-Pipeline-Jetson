@@ -13,12 +13,15 @@ RUN npm install
 # Copy source code
 COPY frontend/ ./
 
-# Debug: List the directory structure to see what was copied
-RUN echo "=== Debugging: Directory structure ===" && \
-    find . -type f -name "*.ts" -o -name "*.tsx" | head -20 && \
-    echo "=== Checking for utils.ts specifically ===" && \
-    ls -la src/lib/ || echo "src/lib directory not found" && \
-    echo "=== End debug info ==="
+# Ensure lib directory exists and copy utils.ts explicitly if needed
+RUN ls -la src/lib/utils.ts || (echo "utils.ts not found, creating it..." && \
+    mkdir -p src/lib && \
+    echo 'import { type ClassValue, clsx } from "clsx"' > src/lib/utils.ts && \
+    echo 'import { twMerge } from "tailwind-merge"' >> src/lib/utils.ts && \
+    echo '' >> src/lib/utils.ts && \
+    echo 'export function cn(...inputs: ClassValue[]) {' >> src/lib/utils.ts && \
+    echo '  return twMerge(clsx(inputs))' >> src/lib/utils.ts && \
+    echo '}' >> src/lib/utils.ts)
 
 # Build the application
 RUN npm run build
