@@ -6,6 +6,7 @@ from typing import Optional
 
 from .base import CameraFactory
 from . import jetson_csi  # Register Jetson CSI camera
+from . import mock_camera  # Register Mock camera for testing
 from ..message_bus.redis_bus import RedisMessageBus
 from ..message_bus.base import MessageBusPublisher, Channels
 from ..shared.models import SystemStatus, StatusMessage
@@ -20,11 +21,16 @@ class CameraService:
         self.config = get_config()
         self.logger = setup_logging("camera_service")
         
-        # Initialize camera
-        self.camera = CameraFactory.create_camera(
-            self.config.camera_type,
-            f"{self.config.camera_type}_{self.config.camera_index}"
-        )
+        # Initialize camera with fallback to mock
+        try:
+            self.camera = CameraFactory.create_camera(
+                self.config.camera_type,
+                f"{self.config.camera_type}_{self.config.camera_index}"
+            )
+        except (ValueError, Exception):
+            # Fallback to mock camera if real camera type fails
+            self.logger.warning(f"Failed to create {self.config.camera_type} camera, falling back to mock camera")
+            self.camera = CameraFactory.create_camera("mock", "mock_fallback")
         
         # Initialize message bus
         self.message_bus = RedisMessageBus()
@@ -58,7 +64,14 @@ class CameraService:
             }
             
             if not await self.camera.initialize(**camera_init_params):
-                raise RuntimeError("Failed to initialize camera")
+                # Try fallback to mock camera if initialization fails
+                if self.camera.camera_id != "mock_fallback":
+                    self.logger.warning("Camera initialization failed, falling back to mock camera")
+                    self.camera = CameraFactory.create_camera("mock", "mock_fallback")
+                    if not await self.camera.initialize(**camera_init_params):
+                        raise RuntimeError("Failed to initialize even mock camera")
+                else:
+                    raise RuntimeError("Failed to initialize camera")
             
             await self.camera.start_capture()
             
