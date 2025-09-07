@@ -214,8 +214,9 @@ class MoondreamAPI:
                     frame_id=request.frame_id
                 )
                 
-                # Publish to Redis for Moondream to process
-                message_json = json.dumps(chat_request_msg.model_dump(mode='json'))
+                # Publish to Redis for Moondream to process - Pydantic 1.x compatibility
+                message_dict = chat_request_msg.dict() if hasattr(chat_request_msg, 'dict') else chat_request_msg.model_dump(mode='json')
+                message_json = json.dumps(message_dict)
                 await self.message_bus.publish_message("chat.requests", message_json)
                 
                 self.logger.info(f"Published chat request: {chat_request_msg.request_id}")

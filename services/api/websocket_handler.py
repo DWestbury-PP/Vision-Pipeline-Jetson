@@ -253,8 +253,10 @@ class WebSocketHandler:
             
             # Broadcast to clients that want frame updates
             self.logger.info(f"Broadcasting frame {metadata.frame_id} to WebSocket clients")
+            # Use dict() for Pydantic 1.x compatibility
+            message_dict = ws_message.dict() if hasattr(ws_message, 'dict') else ws_message.model_dump(mode='json')
             await self.manager.broadcast_filtered(
-                ws_message.model_dump(mode='json'),
+                message_dict,
                 lambda client_id, settings: settings.get("send_frames", True)
             )
             self.logger.info(f"Frame {metadata.frame_id} broadcast complete")
@@ -278,8 +280,10 @@ class WebSocketHandler:
             )
             
             self.logger.info(f"Broadcasting YOLO detection for frame {message.frame_id}")
+            # Use dict() for Pydantic 1.x compatibility
+            message_dict = ws_message.dict() if hasattr(ws_message, 'dict') else ws_message.model_dump(mode='json')
             await self.manager.broadcast_filtered(
-                ws_message.model_dump(mode='json'),
+                message_dict,
                 lambda client_id, settings: settings.get("send_detections", True)
             )
             self.logger.info(f"YOLO detection broadcast complete for frame {message.frame_id}")
@@ -301,7 +305,7 @@ class WebSocketHandler:
             )
             
             await self.manager.broadcast_filtered(
-                ws_message.model_dump(mode='json'),
+                ws_message.dict() if hasattr(ws_message, 'dict') else ws_message.model_dump(mode='json'),
                 lambda client_id, settings: settings.get("send_detections", True)
             )
             
@@ -323,7 +327,7 @@ class WebSocketHandler:
             )
             
             await self.manager.broadcast_filtered(
-                ws_message.model_dump(mode='json'),
+                ws_message.dict() if hasattr(ws_message, 'dict') else ws_message.model_dump(mode='json'),
                 lambda client_id, settings: settings.get("send_detections", True)
             )
             
@@ -340,7 +344,7 @@ class WebSocketHandler:
             ws_message = WSStatusUpdate(status=message.status)
             
             await self.manager.broadcast_filtered(
-                ws_message.model_dump(mode='json'),
+                ws_message.dict() if hasattr(ws_message, 'dict') else ws_message.model_dump(mode='json'),
                 lambda client_id, settings: settings.get("send_status", True)
             )
             
@@ -354,7 +358,9 @@ class WebSocketHandler:
             
             ws_message = WSChatResponse(chat_response=message.chat_response)
             
-            await self.manager.broadcast(ws_message.model_dump(mode='json'))
+            # Use dict() for Pydantic 1.x compatibility
+            message_dict = ws_message.dict() if hasattr(ws_message, 'dict') else ws_message.model_dump(mode='json')
+            await self.manager.broadcast(message_dict)
             
             self.logger.info("Chat response broadcast to WebSocket clients")
             
@@ -417,13 +423,12 @@ class WebSocketHandler:
                 )
             
             else:
-                await self.manager.send_personal_message(
-                    WSError(
-                        error_code="unknown_message_type",
-                        error_message=f"Unknown message type: {message_type}"
-                    ).model_dump(mode='json'),
-                    client_id
+                error_msg = WSError(
+                    error_code="unknown_message_type",
+                    error_message=f"Unknown message type: {message_type}"
                 )
+                error_dict = error_msg.dict() if hasattr(error_msg, 'dict') else error_msg.model_dump(mode='json')
+                await self.manager.send_personal_message(error_dict, client_id)
                 
         except Exception as e:
             log_error_with_context(
@@ -433,13 +438,12 @@ class WebSocketHandler:
                 "handle_client_message"
             )
             
-            await self.manager.send_personal_message(
-                WSError(
-                    error_code="message_processing_error",
-                    error_message="Error processing message"
-                ).model_dump(mode='json'),
-                client_id
+            error_msg = WSError(
+                error_code="message_processing_error",
+                error_message="Error processing message"
             )
+            error_dict = error_msg.dict() if hasattr(error_msg, 'dict') else error_msg.model_dump(mode='json')
+            await self.manager.send_personal_message(error_dict, client_id)
     
     async def _handle_client_chat(self, chat_data: dict, client_id: str) -> None:
         """Handle chat message from client."""
