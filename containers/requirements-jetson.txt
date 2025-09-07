@@ -4,8 +4,8 @@ ultralytics>=8.0.0
 transformers>=4.30.0
 accelerate>=0.20.0
 pillow>=9.0.0
-# opencv-python is replaced with opencv-contrib-python for better Jetson support
-opencv-contrib-python>=4.8.0
+# Use regular opencv-python instead of contrib to avoid dependency issues
+opencv-python>=4.8.0
 numpy>=1.24.0
 
 # Message Bus
@@ -26,17 +26,6 @@ python-multipart>=0.0.6
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
 aiofiles>=23.0.0
-asyncio-mqtt>=0.11.0
-
-# Jetson-specific optimizations
-# TensorRT for model optimization (if available)
-# nvidia-tensorrt>=8.0.0  # Uncomment if TensorRT Python bindings needed
-
-# GStreamer Python bindings for camera support
-# Note: These are typically installed via apt in the Dockerfile
-# pygobject>=3.40.0
-# pycairo>=1.20.0
 
 # Additional utilities for Jetson
 psutil>=5.9.0  # For system monitoring
-GPUtil>=1.4.0  # For GPU monitoring
