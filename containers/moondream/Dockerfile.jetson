@@ -44,6 +44,9 @@ COPY services/ ./services/
 COPY scripts/ ./scripts/
 COPY env.example .env
 
+# Copy Moondream model
+COPY models/moondream/ ./models/moondream/
+
 # Create models directory and set up HuggingFace cache
 RUN mkdir -p /app/models/moondream && \
     chown -R appuser:appuser /app
@@ -58,4 +61,4 @@ ENV TRANSFORMERS_CACHE=/home/appuser/.cache/huggingface
 # Expose any necessary ports (none for Moondream service)
 
 # Run the Moondream service (OpenCV patch as fallback if needed)
-CMD ["sh", "-c", "python3 scripts/opencv_patch.py || true && python3 services/native/moondream_native.py"]
+CMD ["python3", "services/native/moondream_native.py"]

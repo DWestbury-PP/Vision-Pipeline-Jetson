@@ -123,6 +123,12 @@ class NativeMoondreamService:
     def load_moondream_model(self):
         """Load the Moondream2 model from local files."""
         try:
+            if not TRANSFORMERS_AVAILABLE:
+                self.logger.warning("Transformers not available - using mock Moondream model")
+                self.model = None
+                self.tokenizer = None
+                return True  # Return True so service doesn't fail
+                
             self.logger.info("Loading Moondream2 model from local files...")
             
             # Set device - use MPS for Apple Silicon

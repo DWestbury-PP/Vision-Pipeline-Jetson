@@ -43,4 +43,4 @@ USER appuser
 EXPOSE 8000 8001
 
 # Run the API service (OpenCV patch as fallback if needed)
-CMD ["sh", "-c", "python3 scripts/opencv_patch.py || true && python3 -m services.api.rest_api"]
+CMD ["python3", "-m", "services.api.rest_api"]
