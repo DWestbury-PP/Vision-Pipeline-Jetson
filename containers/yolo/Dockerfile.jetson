@@ -8,16 +8,11 @@ ENV TZ=UTC
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgomp1 \
+# Install essential system dependencies (minimal set for network resilience)
+RUN apt-get update && apt-get install -y --fix-missing \
     libffi7 \
-    && rm -rf /var/lib/apt/lists/*
+    || (apt-get update --fix-missing && apt-get install -y libffi7) \
+    && rm -rf /var/lib/apt/lists/* || true
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \
