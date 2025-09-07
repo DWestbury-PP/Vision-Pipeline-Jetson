@@ -290,6 +290,12 @@ class NativeYOLOService:
                             metadata_dict = frame_package['metadata']
                             shape = frame_package['shape']
                             dtype = frame_package['dtype']
+                            compressed = frame_package.get('compressed', False)
+                            
+                            # Decompress if needed
+                            if compressed:
+                                import gzip
+                                frame_bytes = gzip.decompress(frame_bytes)
                             
                             # Reconstruct numpy array
                             frame = np.frombuffer(frame_bytes, dtype=dtype).reshape(shape)

@@ -13,6 +13,15 @@ import json
 import pickle
 import subprocess
 import tempfile
+from datetime import datetime
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles datetime objects."""
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat() + 'Z'
+        return super().default(obj)
 import numpy as np
 import torch
 from pathlib import Path
@@ -370,7 +379,7 @@ class NativeMoondreamService:
             import json
             # Use dict() for Pydantic 1.x compatibility
             message_dict = vlm_message.dict() if hasattr(vlm_message, 'dict') else vlm_message.model_dump(mode='json')
-            message_json = json.dumps(message_dict)
+            message_json = json.dumps(message_dict, cls=DateTimeEncoder)
             self.redis_client.publish("msg:detection.vlm", message_json.encode('utf-8'))
             self.logger.info(f"Published VLM result for frame {vlm_message.frame_id}")
         except Exception as e:
@@ -382,7 +391,7 @@ class NativeMoondreamService:
             import json
             # Use dict() for Pydantic 1.x compatibility
             message_dict = chat_response.dict() if hasattr(chat_response, 'dict') else chat_response.model_dump(mode='json')
-            message_json = json.dumps(message_dict)
+            message_json = json.dumps(message_dict, cls=DateTimeEncoder)
             self.redis_client.publish("msg:chat.responses", message_json.encode('utf-8'))
             self.logger.info(f"Published chat response")
         except Exception as e:
@@ -417,6 +426,12 @@ class NativeMoondreamService:
                         metadata_dict = frame_package['metadata']
                         shape = frame_package['shape']
                         dtype = frame_package['dtype']
+                        compressed = frame_package.get('compressed', False)
+                        
+                        # Decompress if needed
+                        if compressed:
+                            import gzip
+                            frame_bytes = gzip.decompress(frame_bytes)
                         
                         # Reconstruct numpy array
                         import numpy as np
