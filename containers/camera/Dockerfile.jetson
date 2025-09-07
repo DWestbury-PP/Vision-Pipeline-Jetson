@@ -1,6 +1,10 @@
 # Jetson camera service with CSI camera support
 FROM nvcr.io/nvidia/pytorch:24.08-py3-igpu
 
+# Prevent interactive prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
 # Set working directory
 WORKDIR /app
 
