@@ -61,8 +61,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
+    <Card className="h-full flex flex-col max-h-full">
+      <CardHeader className="flex-shrink-0">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
@@ -79,7 +79,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           />
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col h-full p-0">
+      <CardContent className="flex flex-col flex-1 p-0 min-h-0">
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
           {messages.length === 0 ? (
@@ -130,7 +130,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </div>
 
         {/* Input Area */}
-        <div className="border-t p-4">
+        <div className="border-t p-4 flex-shrink-0">
           <form onSubmit={handleSubmit} className="flex gap-2">
             <input
               ref={inputRef}

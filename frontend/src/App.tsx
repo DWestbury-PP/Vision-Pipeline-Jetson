@@ -302,7 +302,7 @@ function App() {
             </Card>
             
             {/* Chat Interface */}
-            <div className="flex-1">
+            <div className="flex-1 min-h-0">
               <ChatInterface
                 messages={chatMessages}
                 onSendMessage={handleSendChatMessage}
