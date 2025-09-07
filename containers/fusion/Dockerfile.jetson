@@ -29,6 +29,7 @@ RUN pip3 install --no-cache-dir --timeout 300 --retries 3 -r requirements-minima
 
 # Copy application code
 COPY services/ ./services/
+COPY scripts/ ./scripts/
 COPY env.example .env
 
 # Set ownership
@@ -37,5 +38,5 @@ RUN chown -R appuser:appuser /app
 # Switch to non-root user
 USER appuser
 
-# Run the fusion service
-CMD ["python3", "-m", "services.cv_services.fusion_service"]
+# Apply OpenCV patch and run the fusion service
+CMD ["sh", "-c", "python3 scripts/opencv_patch.py && python3 -m services.cv_services.fusion_service"]

@@ -19,7 +19,30 @@ from datetime import datetime
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from ..shared.opencv_patch import cv2, CV2_AVAILABLE
+# Apply OpenCV compatibility patch before import
+import os
+os.environ['OPENCV_DISABLE_TYPING'] = '1'
+
+try:
+    import cv2
+    # Patch DictValue if missing
+    if hasattr(cv2, 'dnn') and not hasattr(cv2.dnn, 'DictValue'):
+        class MockDictValue:
+            def __init__(self, *args, **kwargs): pass
+        cv2.dnn.DictValue = MockDictValue
+        print("🔧 Patched cv2.dnn.DictValue in camera service")
+    CV2_AVAILABLE = True
+except Exception as e:
+    print(f"❌ OpenCV import failed in camera: {e}")
+    # Mock cv2 for basic compatibility
+    class MockCV2:
+        @staticmethod
+        def __version__(): return "mock-4.5.0"
+        class dnn:
+            class DictValue:
+                def __init__(self, *args, **kwargs): pass
+    cv2 = MockCV2()
+    CV2_AVAILABLE = False
 import numpy as np
 import redis
 from pydantic import Field

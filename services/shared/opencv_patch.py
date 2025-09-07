@@ -3,15 +3,65 @@ OpenCV import patch to handle DNN module compatibility issues.
 
 This module provides a safe way to import OpenCV that handles the
 cv2.dnn.DictValue AttributeError that occurs in some NVIDIA container environments.
+
+The patch works by intercepting the module loading process and monkey-patching
+the missing DictValue attribute before the typing module tries to access it.
 """
 
 import sys
+import importlib
 import importlib.util
 from typing import Any, Optional
 
 # Global flag to track if OpenCV is available
 CV2_AVAILABLE = False
 cv2: Optional[Any] = None
+
+
+def pre_patch_opencv_typing():
+    """
+    Pre-patch OpenCV typing module to prevent DictValue AttributeError.
+    
+    This function monkey-patches the cv2.dnn module before the typing
+    module tries to access the missing DictValue attribute.
+    """
+    try:
+        # Check if cv2 is already in sys.modules
+        if 'cv2' in sys.modules:
+            opencv_module = sys.modules['cv2']
+        else:
+            # Import cv2 core module without triggering full initialization
+            import cv2 as opencv_module
+        
+        # Check if dnn module exists and patch if needed
+        if hasattr(opencv_module, 'dnn'):
+            if not hasattr(opencv_module.dnn, 'DictValue'):
+                print("🔧 Pre-patching OpenCV DNN module with missing DictValue...")
+                
+                # Create a mock DictValue class
+                class MockDictValue:
+                    """Mock DictValue for compatibility."""
+                    def __init__(self, *args, **kwargs):
+                        pass
+                    
+                    def __call__(self, *args, **kwargs):
+                        return self
+                    
+                    def __str__(self):
+                        return "MockDictValue"
+                    
+                    def __repr__(self):
+                        return "MockDictValue()"
+                
+                # Monkey patch the missing attribute
+                opencv_module.dnn.DictValue = MockDictValue
+                print("✅ Successfully patched cv2.dnn.DictValue")
+                
+        return True
+        
+    except Exception as e:
+        print(f"⚠️  Pre-patch failed: {e}")
+        return False
 
 
 def patch_opencv_import():
@@ -27,39 +77,29 @@ def patch_opencv_import():
         return cv2, CV2_AVAILABLE
     
     try:
-        # First, try to import cv2 normally
+        # Pre-patch OpenCV typing issues
+        pre_patch_opencv_typing()
+        
+        # Now try to import cv2 normally
         import cv2 as opencv_module
         
-        # Test if the DNN module works
+        # Verify the patch worked
         try:
             _ = opencv_module.dnn.DictValue
-            # If we get here, DNN module is working properly
-            CV2_AVAILABLE = True
-            cv2 = opencv_module
             print("✅ OpenCV imported successfully with working DNN module")
-            
         except AttributeError:
-            # DNN module has compatibility issues, patch it
-            print("⚠️  OpenCV DNN module has compatibility issues, applying patch...")
-            
-            # Create a mock DictValue if it doesn't exist
-            if not hasattr(opencv_module.dnn, 'DictValue'):
-                # Create a simple mock class
-                class MockDictValue:
-                    def __init__(self, *args, **kwargs):
-                        pass
-                    
-                    def __call__(self, *args, **kwargs):
-                        return self
-                
-                # Monkey patch the missing attribute
-                opencv_module.dnn.DictValue = MockDictValue
-                print("🔧 Applied DictValue patch to OpenCV DNN module")
-            
-            CV2_AVAILABLE = True
-            cv2 = opencv_module
-            print("✅ OpenCV imported successfully with DNN compatibility patch")
-            
+            print("⚠️  DictValue still missing, applying backup patch...")
+            # Apply backup patch
+            class MockDictValue:
+                def __init__(self, *args, **kwargs):
+                    pass
+            opencv_module.dnn.DictValue = MockDictValue
+            print("🔧 Applied backup DictValue patch")
+        
+        CV2_AVAILABLE = True
+        cv2 = opencv_module
+        print(f"📸 OpenCV version: {opencv_module.__version__}")
+        
     except ImportError as e:
         print(f"❌ Failed to import OpenCV: {e}")
         
@@ -92,6 +132,10 @@ def patch_opencv_import():
                 """Mock resize that returns input unchanged."""
                 return src
             
+            @staticmethod
+            def __version__():
+                return "mock-4.5.0"
+            
             class dnn:
                 """Mock DNN module."""
                 
@@ -99,14 +143,26 @@ def patch_opencv_import():
                     """Mock DictValue class."""
                     def __init__(self, *args, **kwargs):
                         pass
-            
-            @staticmethod
-            def __version__():
-                return "mock-4.5.0"
         
         CV2_AVAILABLE = False
         cv2 = MockCV2()
         print("🔧 Using mock OpenCV module for basic compatibility")
+    
+    except Exception as e:
+        print(f"❌ Unexpected error during OpenCV import: {e}")
+        # Fallback to mock module
+        class MockCV2:
+            @staticmethod
+            def __version__():
+                return "mock-error-4.5.0"
+            class dnn:
+                class DictValue:
+                    def __init__(self, *args, **kwargs):
+                        pass
+        
+        CV2_AVAILABLE = False
+        cv2 = MockCV2()
+        print("🔧 Using error fallback mock OpenCV module")
     
     return cv2, CV2_AVAILABLE
 
@@ -122,4 +178,19 @@ def get_opencv():
 
 
 # Automatically patch on import
-cv2, CV2_AVAILABLE = patch_opencv_import()
+try:
+    cv2, CV2_AVAILABLE = patch_opencv_import()
+except Exception as e:
+    print(f"❌ Critical error in opencv_patch initialization: {e}")
+    # Emergency fallback
+    class EmergencyMockCV2:
+        @staticmethod
+        def __version__():
+            return "emergency-mock-4.5.0"
+        class dnn:
+            class DictValue:
+                def __init__(self, *args, **kwargs):
+                    pass
+    
+    CV2_AVAILABLE = False
+    cv2 = EmergencyMockCV2()

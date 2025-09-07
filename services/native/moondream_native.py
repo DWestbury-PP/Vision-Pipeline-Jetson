@@ -18,7 +18,30 @@ import torch
 from pathlib import Path
 from typing import Optional, List
 from PIL import Image
-from ..shared.opencv_patch import cv2, CV2_AVAILABLE
+# Apply OpenCV compatibility patch before import
+import os
+os.environ['OPENCV_DISABLE_TYPING'] = '1'
+
+try:
+    import cv2
+    # Patch DictValue if missing
+    if hasattr(cv2, 'dnn') and not hasattr(cv2.dnn, 'DictValue'):
+        class MockDictValue:
+            def __init__(self, *args, **kwargs): pass
+        cv2.dnn.DictValue = MockDictValue
+        print("🔧 Patched cv2.dnn.DictValue in moondream service")
+    CV2_AVAILABLE = True
+except Exception as e:
+    print(f"❌ OpenCV import failed in moondream: {e}")
+    # Mock cv2 for basic compatibility
+    class MockCV2:
+        @staticmethod
+        def __version__(): return "mock-4.5.0"
+        class dnn:
+            class DictValue:
+                def __init__(self, *args, **kwargs): pass
+    cv2 = MockCV2()
+    CV2_AVAILABLE = False
 
 # Add the project root to the path
 project_root = Path(__file__).parent.parent.parent
@@ -283,7 +306,30 @@ class NativeMoondreamService:
                 # Use the most recent frame if available
                 if hasattr(self, 'last_frame') and self.last_frame is not None:
                     # Convert frame to PIL Image
-                    from ..shared.opencv_patch import cv2, CV2_AVAILABLE
+                    # Apply OpenCV compatibility patch before import
+import os
+os.environ['OPENCV_DISABLE_TYPING'] = '1'
+
+try:
+    import cv2
+    # Patch DictValue if missing
+    if hasattr(cv2, 'dnn') and not hasattr(cv2.dnn, 'DictValue'):
+        class MockDictValue:
+            def __init__(self, *args, **kwargs): pass
+        cv2.dnn.DictValue = MockDictValue
+        print("🔧 Patched cv2.dnn.DictValue in moondream service")
+    CV2_AVAILABLE = True
+except Exception as e:
+    print(f"❌ OpenCV import failed in moondream: {e}")
+    # Mock cv2 for basic compatibility
+    class MockCV2:
+        @staticmethod
+        def __version__(): return "mock-4.5.0"
+        class dnn:
+            class DictValue:
+                def __init__(self, *args, **kwargs): pass
+    cv2 = MockCV2()
+    CV2_AVAILABLE = False
                     from PIL import Image
                     frame_rgb = cv2.cvtColor(self.last_frame, cv2.COLOR_BGR2RGB)
                     pil_image = Image.fromarray(frame_rgb)
