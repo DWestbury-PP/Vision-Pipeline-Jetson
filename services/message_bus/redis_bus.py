@@ -34,11 +34,6 @@ class RedisMessageBus(MessageBus):
     async def connect(self) -> None:
         """Connect to Redis."""
         try:
-            if not AIOREDIS_AVAILABLE:
-                self.logger.warning("aioredis not available, using synchronous redis client")
-                # For now, raise an error to indicate async redis is needed
-                raise ImportError("aioredis required for async message bus operations")
-            
             self.redis_client = aioredis.Redis(
                 host=self.config.redis_host,
                 port=self.config.redis_port,

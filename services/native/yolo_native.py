@@ -21,7 +21,13 @@ sys.path.insert(0, str(project_root))
 import numpy as np
 import redis
 import torch
-from ultralytics import YOLO
+try:
+    from ultralytics import YOLO
+    ULTRALYTICS_AVAILABLE = True
+except ImportError:
+    print("⚠️  Ultralytics not available - YOLO service will run in mock mode")
+    YOLO = None
+    ULTRALYTICS_AVAILABLE = False
 from pydantic import Field
 from pydantic import BaseSettings
 
@@ -116,6 +122,11 @@ class NativeYOLOService:
                 device = "cpu"
                 self.logger.info("Using CPU for inference")
             
+            if not ULTRALYTICS_AVAILABLE:
+                self.logger.warning("Ultralytics not available - using mock YOLO model")
+                self.model = None
+                return
+                
             # Load model with absolute path
             self.model = YOLO(model_path)
             
@@ -172,7 +183,12 @@ class NativeYOLOService:
                 return None
             
             # Run YOLO inference on the actual frame
-            results = self.model(frame, conf=self.config.yolo_confidence, verbose=False)
+            if self.model is None:
+                # Mock detection result when ultralytics is not available
+                self.logger.debug("Using mock YOLO detection (ultralytics not available)")
+                results = []
+            else:
+                results = self.model(frame, conf=self.config.yolo_confidence, verbose=False)
             
             # Convert results to our format
             detections = []

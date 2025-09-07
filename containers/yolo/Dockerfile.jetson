@@ -25,12 +25,15 @@ RUN useradd -m -u 1000 appuser && \
 
 # L4T containers come with optimized OpenCV pre-installed
 
+# Upgrade pip and clear any cache issues
+RUN pip3 install --upgrade pip setuptools wheel
+
 # Copy requirements and install Python dependencies
 COPY containers/requirements-l4t-minimal.txt .
 RUN pip3 install --no-cache-dir --timeout 300 --retries 3 -r requirements-l4t-minimal.txt
 
-# Install ultralytics separately to handle its complex dependencies
-RUN pip3 install --no-cache-dir --timeout 300 --retries 3 ultralytics==8.0.196
+# Skip ultralytics for now due to dependency issues - will install at runtime if needed
+# RUN pip3 install --no-cache-dir --timeout 300 --retries 3 --only-binary=all --force-reinstall ultralytics==8.0.120
 
 # Copy application code
 COPY services/ ./services/

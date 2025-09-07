@@ -55,6 +55,15 @@ import redis
 from pydantic import Field
 from pydantic import BaseSettings
 
+# Check for transformers availability
+try:
+    import transformers
+    TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    print("⚠️  Transformers not available - Moondream service will run in mock mode")
+    transformers = None
+    TRANSFORMERS_AVAILABLE = False
+
 # Import shared models from the containerized services
 from services.shared.models import (
     FrameMetadata, BoundingBox, VLMResult, 
