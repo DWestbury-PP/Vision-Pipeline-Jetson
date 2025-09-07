@@ -1,5 +1,5 @@
 # Jetson YOLO service with CUDA GPU acceleration
-FROM nvcr.io/nvidia/l4t-pytorch:r35.2.1-pth2.0-py3
+FROM nvcr.io/nvidia/l4t-pytorch:r36.2.0-pth2.1-py3
 
 # Set working directory
 WORKDIR /app
@@ -12,9 +12,8 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev \
     libgomp1 \
-    libffi7 \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -s /usr/lib/aarch64-linux-gnu/libffi.so.7 /usr/lib/aarch64-linux-gnu/libffi.so.8
+    libffi8 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \
