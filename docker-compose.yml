@@ -117,10 +117,12 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      # Dependencies on containerized CV services
-      - camera
-      - yolo
-      - moondream
+      camera:
+        condition: service_started
+      yolo:
+        condition: service_started
+      moondream:
+        condition: service_started
     restart: unless-stopped
     networks:
       - vision-pipeline-network
