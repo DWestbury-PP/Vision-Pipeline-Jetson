@@ -64,11 +64,6 @@ services:
     volumes:
       - /dev:/dev
       - /tmp/argus_socket:/tmp/argus_socket
-    # PyTorch recommended flags
-    ipc: host
-    ulimits:
-      memlock: -1
-      stack: 67108864
 
   # YOLO object detection service
   # NOTE: Now runs in container with CUDA GPU acceleration
