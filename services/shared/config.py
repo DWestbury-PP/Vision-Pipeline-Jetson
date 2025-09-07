@@ -18,7 +18,7 @@ class RedisConfig(BaseSettings):
 
 class CameraConfig(BaseSettings):
     """Camera configuration."""
-    type: Literal["mac_studio", "jetson_csi", "usb"] = Field(default="jetson_csi", env="CAMERA_TYPE")
+    type: Literal["mac_studio", "jetson_csi", "usb", "mock"] = Field(default="mock", env="CAMERA_TYPE")
     index: int = Field(default=0, env="CAMERA_INDEX")
     width: int = Field(default=1920, env="CAMERA_WIDTH")
     height: int = Field(default=1080, env="CAMERA_HEIGHT")
@@ -94,7 +94,7 @@ class Config(BaseSettings):
     redis_db: int = Field(default=0, env="REDIS_DB")
     
     # Camera configuration
-    camera_type: Literal["mac_studio", "jetson_csi", "usb"] = Field(default="jetson_csi", env="CAMERA_TYPE")
+    camera_type: Literal["mac_studio", "jetson_csi", "usb", "mock"] = Field(default="mock", env="CAMERA_TYPE")
     camera_index: int = Field(default=0, env="CAMERA_INDEX")
     camera_width: int = Field(default=1920, env="CAMERA_WIDTH")
     camera_height: int = Field(default=1080, env="CAMERA_HEIGHT")

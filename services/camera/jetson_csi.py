@@ -1,7 +1,21 @@
 """Jetson CSI camera implementation for IMX219-83 Stereo Binocular Camera using GStreamer."""
 
-import cv2
 import numpy as np
+
+# Try to import OpenCV, but handle gracefully if it fails
+try:
+    import cv2
+    CV2_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: OpenCV not available in Jetson CSI camera: {e}")
+    CV2_AVAILABLE = False
+    # Create a mock cv2 module for basic functionality
+    class MockCV2:
+        CAP_GSTREAMER = 1800
+        CAP_V4L2 = 200
+        def VideoCapture(self, *args, **kwargs):
+            return None
+    cv2 = MockCV2()
 import asyncio
 import time
 import subprocess
@@ -21,7 +35,7 @@ class JetsonCSICamera(StreamingCameraInterface):
         super().__init__(camera_id)
         self.logger = setup_logging("jetson_csi_camera")
         self.config = get_config()
-        self.cap: Optional[cv2.VideoCapture] = None
+        self.cap = None
         self._last_frame_time = 0
         self._target_fps = self.config.camera_fps
         self._frame_interval = 1.0 / self._target_fps
@@ -80,6 +94,10 @@ class JetsonCSICamera(StreamingCameraInterface):
             self.logger.info(f"GStreamer pipeline: {self.gst_pipeline}")
             
             # Initialize camera with GStreamer pipeline
+            if not CV2_AVAILABLE:
+                self.logger.error("OpenCV not available - cannot initialize CSI camera")
+                return False
+                
             self.cap = cv2.VideoCapture(self.gst_pipeline, cv2.CAP_GSTREAMER)
             
             if not self.cap.isOpened():
@@ -259,9 +277,9 @@ class JetsonCSICamera(StreamingCameraInterface):
                     "hardware_acceleration": True
                 },
                 "current_settings": {
-                    "width": int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                    "height": int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-                    "fps": self.cap.get(cv2.CAP_PROP_FPS),
+                    "width": int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)) if CV2_AVAILABLE and self.cap else self.width,
+                    "height": int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) if CV2_AVAILABLE and self.cap else self.height,
+                    "fps": self.cap.get(cv2.CAP_PROP_FPS) if CV2_AVAILABLE and self.cap else self._target_fps,
                     "sensor_mode": self.sensor_mode,
                     "sensor_id": self.camera_index
                 }
