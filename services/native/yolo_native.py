@@ -13,6 +13,15 @@ import pickle
 import json
 from pathlib import Path
 from typing import Optional
+from datetime import datetime
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles datetime objects."""
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat() + 'Z'
+        return super().default(obj)
 
 # Add the project root to the path
 project_root = Path(__file__).parent.parent.parent
@@ -253,7 +262,7 @@ class NativeYOLOService:
             import json
             # Use dict() for Pydantic 1.x compatibility
             message_dict = detection_message.dict() if hasattr(detection_message, 'dict') else detection_message.model_dump(mode='json')
-            message_json = json.dumps(message_dict)
+            message_json = json.dumps(message_dict, cls=DateTimeEncoder)
             self.redis_client.publish("msg:detection.yolo", message_json.encode('utf-8'))
             self.logger.info(f"Published detection for frame {detection_message.frame_id} to msg:detection.yolo")
         except Exception as e:
