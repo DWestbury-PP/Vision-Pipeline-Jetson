@@ -4,7 +4,7 @@ import { ChatInterface } from './components/ChatInterface';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
 import { Switch } from './components/ui/switch';
-import { Activity, Settings, Wifi, WifiOff } from 'lucide-react';
+import { Activity, Target, Wifi, WifiOff } from 'lucide-react';
 import './App.css';
 
 interface SystemStatus {
@@ -245,57 +245,55 @@ function App() {
               showBoundingBoxes={showBoundingBoxes}
               mirrorMode={mirrorMode}
               showConfidence={showConfidence}
+              yoloEnabled={yoloEnabled}
             />
           </div>
           
           {/* Right Panel */}
-          <div className="space-y-6">
-            {/* System Controls */}
+          <div className="flex flex-col space-y-6">
+            {/* YOLO Detection Panel */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  System Controls
-                </CardTitle>
-                <CardDescription>
-                  Configure detection services
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">YOLO Detection</label>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    YOLO Detection
+                  </div>
                   <Switch
                     checked={yoloEnabled}
                     onCheckedChange={setYoloEnabled}
                   />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Show Bounding Boxes</label>
+                  <Switch
+                    checked={showBoundingBoxes}
+                    onCheckedChange={setShowBoundingBoxes}
+                  />
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">VLM Processing</label>
+                  <label className="text-sm font-medium">Show Confidence</label>
                   <Switch
-                    checked={vlmEnabled}
-                    onCheckedChange={setVlmEnabled}
+                    checked={showConfidence}
+                    onCheckedChange={setShowConfidence}
                   />
                 </div>
                 
                 {systemStatus && (
                   <div className="pt-4 border-t space-y-2 text-xs">
                     <div className="flex justify-between">
-                      <span>Camera:</span>
-                      <span className={systemStatus.camera_active ? 'text-emerald-400' : 'text-red-400'}>
-                        {systemStatus.camera_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>YOLO:</span>
+                      <span>Status:</span>
                       <span className={systemStatus.yolo_active ? 'text-emerald-400' : 'text-red-400'}>
                         {systemStatus.yolo_active ? 'Running' : 'Stopped'}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Moondream:</span>
-                      <span className={systemStatus.moondream_instances > 0 ? 'text-emerald-400' : 'text-red-400'}>
-                        {systemStatus.moondream_instances} instances
+                      <span>Detections:</span>
+                      <span className="text-muted-foreground">
+                        {detectionResult?.bounding_boxes.length || 0}
                       </span>
                     </div>
                   </div>
@@ -304,12 +302,14 @@ function App() {
             </Card>
             
             {/* Chat Interface */}
-            <div className="h-[400px]">
+            <div className="flex-1">
               <ChatInterface
                 messages={chatMessages}
                 onSendMessage={handleSendChatMessage}
                 isProcessing={isChatProcessing}
                 isConnected={isConnected}
+                vlmEnabled={vlmEnabled}
+                onToggleVlm={setVlmEnabled}
               />
             </div>
           </div>

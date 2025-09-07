@@ -42,6 +42,7 @@ interface CameraViewProps {
   showBoundingBoxes: boolean;
   mirrorMode: boolean;
   showConfidence: boolean;
+  yoloEnabled: boolean;
 }
 
 export const CameraView: React.FC<CameraViewProps> = ({
@@ -55,6 +56,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
   showBoundingBoxes,
   mirrorMode,
   showConfidence,
+  yoloEnabled,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -87,14 +89,14 @@ export const CameraView: React.FC<CameraViewProps> = ({
         ctx.restore();
       }
       
-      // Draw bounding boxes if enabled
-      if (showBoundingBoxes && detectionResult) {
+      // Draw bounding boxes if YOLO is enabled and bounding boxes are shown
+      if (yoloEnabled && showBoundingBoxes && detectionResult) {
         drawBoundingBoxes(ctx, detectionResult.bounding_boxes, canvas.width, canvas.height, mirrorMode);
       }
     };
     
     img.src = frameData;
-  }, [frameData, showBoundingBoxes, mirrorMode, showConfidence, detectionResult]);
+  }, [frameData, showBoundingBoxes, mirrorMode, showConfidence, detectionResult, yoloEnabled]);
 
   const drawBoundingBoxes = (
     ctx: CanvasRenderingContext2D,
@@ -174,23 +176,34 @@ export const CameraView: React.FC<CameraViewProps> = ({
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Camera className="h-5 w-5" />
-          Camera View
-          <div className={`ml-2 h-2 w-2 rounded-full ${
-            isConnected ? 'bg-emerald-400' : 'bg-red-400'
-          }`} />
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Camera className="h-5 w-5" />
+            Camera View
+            <div className={`ml-2 h-2 w-2 rounded-full ${
+              isConnected ? 'bg-emerald-400' : 'bg-red-400'
+            }`} />
+          </div>
+          
+          {/* Mirror Mode Toggle */}
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium">Mirror Mode</label>
+            <Switch
+              checked={mirrorMode}
+              onCheckedChange={onToggleMirrorMode}
+            />
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col h-full">
         {/* Camera Display */}
-        <div className="flex-1 flex items-center justify-center bg-black rounded-lg overflow-hidden">
+        <div className="flex-1 flex items-center justify-center bg-black rounded-lg overflow-hidden relative">
           {isConnected && frameData ? (
             <canvas
               ref={canvasRef}
               width={canvasSize.width}
               height={canvasSize.height}
-              className="max-w-full max-h-full"
+              className="max-w-full max-h-full rounded-lg"
             />
           ) : (
             <div className="text-white text-center">
@@ -200,48 +213,15 @@ export const CameraView: React.FC<CameraViewProps> = ({
           )}
         </div>
 
-        {/* Controls */}
-        <div className="mt-4 space-y-4">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={showBoundingBoxes}
-                onCheckedChange={onToggleBoundingBoxes}
-              />
-              <label className="text-sm font-medium">
-                Show Bounding Boxes
-              </label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={showConfidence}
-                onCheckedChange={onToggleConfidence}
-              />
-              <label className="text-sm font-medium">
-                Show Confidence
-              </label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={mirrorMode}
-                onCheckedChange={onToggleMirrorMode}
-              />
-              <label className="text-sm font-medium">
-                Mirror Mode
-              </label>
-            </div>
-          </div>
-
-          {/* Frame Info */}
+        {/* Frame Info */}
+        <div className="mt-4">
           {frameMetadata && (
             <div className="text-xs text-muted-foreground grid grid-cols-2 md:grid-cols-4 gap-2">
               <span>Frame: #{frameMetadata.frame_id}</span>
               <span>Resolution: {frameMetadata.width}x{frameMetadata.height}</span>
               <span>FPS: {frameMetadata.fps.toFixed(1)}</span>
               <span>
-                Detections: {detectionResult?.bounding_boxes.length || 0}
+                Detections: {yoloEnabled ? (detectionResult?.bounding_boxes.length || 0) : 0}
               </span>
             </div>
           )}

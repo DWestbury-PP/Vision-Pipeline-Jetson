@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
+import { Switch } from './ui/switch';
 import { MessageCircle, Send, Loader2 } from 'lucide-react';
 
 interface ChatMessage {
@@ -16,6 +17,8 @@ interface ChatInterfaceProps {
   onSendMessage: (message: string) => void;
   isProcessing: boolean;
   isConnected: boolean;
+  vlmEnabled: boolean;
+  onToggleVlm: (enabled: boolean) => void;
 }
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -23,6 +26,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   onSendMessage,
   isProcessing,
   isConnected,
+  vlmEnabled,
+  onToggleVlm,
 }) => {
   const [inputMessage, setInputMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -58,12 +63,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MessageCircle className="h-5 w-5" />
-          VLM Chat
-          <div className={`ml-2 h-2 w-2 rounded-full ${
-            isConnected ? 'bg-emerald-400' : 'bg-red-400'
-          }`} />
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            VLM Chat
+            <div className={`ml-2 h-2 w-2 rounded-full ${
+              isConnected ? 'bg-emerald-400' : 'bg-red-400'
+            }`} />
+          </div>
+          
+          {/* VLM Toggle */}
+          <Switch
+            checked={vlmEnabled}
+            onCheckedChange={onToggleVlm}
+          />
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col h-full p-0">
@@ -130,13 +143,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   ? "Ask about what you see in the camera..."
                   : "Connect to start chatting..."
               }
-              disabled={isProcessing || !isConnected}
+              disabled={isProcessing || !isConnected || !vlmEnabled}
               className="flex-1 px-3 py-2 border border-input rounded-md bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
             <Button
               type="submit"
               size="sm"
-              disabled={!inputMessage.trim() || isProcessing || !isConnected}
+              disabled={!inputMessage.trim() || isProcessing || !isConnected || !vlmEnabled}
             >
               {isProcessing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -152,7 +165,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </p>
           )}
           
-          {isConnected && (
+          {!vlmEnabled && isConnected && (
+            <p className="text-xs text-muted-foreground mt-2">
+              VLM is disabled. Enable to start chatting...
+            </p>
+          )}
+          
+          {isConnected && vlmEnabled && (
             <p className="text-xs text-muted-foreground mt-2">
               Press Enter to send, Shift+Enter for new line
             </p>
