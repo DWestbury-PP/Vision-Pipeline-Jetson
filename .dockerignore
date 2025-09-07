@@ -69,5 +69,11 @@ docs/
 README.md
 *.md
 
-# Ignore scripts (not needed in containers)
-scripts/
+# Ignore scripts (except opencv_patch.py which is needed in containers)
+scripts/build-base.sh
+scripts/logs-unified.sh
+scripts/quick-start.sh
+scripts/setup-jetson.sh
+scripts/start-all.sh
+scripts/status.sh
+scripts/stop-all.sh
