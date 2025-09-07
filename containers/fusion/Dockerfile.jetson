@@ -1,5 +1,5 @@
 # Jetson fusion service for combining CV outputs
-FROM nvcr.io/nvidia/pytorch:24.08-py3-igpu
+FROM nvcr.io/nvidia/l4t-pytorch:r35.2.1-pth2.0-py3
 
 # Prevent interactive prompts during build
 ENV DEBIAN_FRONTEND=noninteractive
@@ -19,9 +19,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 
-# Remove any pip-installed OpenCV and install NVIDIA's optimized version
-RUN pip3 uninstall -y opencv-python opencv-contrib-python opencv-python-headless || true && \
-    apt-get update && apt-get install -y python3-opencv && rm -rf /var/lib/apt/lists/*
+# L4T containers come with optimized OpenCV pre-installed
 
 # Copy requirements and install Python dependencies
 COPY containers/requirements-minimal.txt .
@@ -38,5 +36,5 @@ RUN chown -R appuser:appuser /app
 # Switch to non-root user
 USER appuser
 
-# Apply OpenCV patch and run the fusion service
-CMD ["sh", "-c", "python3 scripts/opencv_patch.py && python3 -m services.cv_services.fusion_service"]
+# Run the fusion service (OpenCV patch as fallback if needed)
+CMD ["sh", "-c", "python3 scripts/opencv_patch.py || true && python3 -m services.cv_services.fusion_service"]
