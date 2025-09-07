@@ -7,10 +7,19 @@ import io
 from typing import Dict, Set, Optional, Any
 import numpy as np
 from PIL import Image
+from datetime import datetime
 
 from ..shared.opencv_patch import cv2, CV2_AVAILABLE
 from fastapi import WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles datetime objects."""
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat() + 'Z'
+        return super().default(obj)
 
 from ..message_bus.redis_bus import RedisMessageBus
 from ..message_bus.base import MessageBusSubscriber, Channels
@@ -65,7 +74,7 @@ class ConnectionManager:
         if client_id in self.active_connections:
             try:
                 websocket = self.active_connections[client_id]
-                await websocket.send_text(json.dumps(message))
+                await websocket.send_text(json.dumps(message, cls=DateTimeEncoder))
             except Exception as e:
                 log_error_with_context(
                     self.logger,
@@ -85,7 +94,7 @@ class ConnectionManager:
         
         for client_id, websocket in self.active_connections.items():
             try:
-                await websocket.send_text(json.dumps(message))
+                await websocket.send_text(json.dumps(message, cls=DateTimeEncoder))
             except Exception as e:
                 log_error_with_context(
                     self.logger,
@@ -106,7 +115,7 @@ class ConnectionManager:
         for client_id, websocket in self.active_connections.items():
             try:
                 if filter_func(client_id, self.connection_settings.get(client_id, {})):
-                    await websocket.send_text(json.dumps(message))
+                    await websocket.send_text(json.dumps(message, cls=DateTimeEncoder))
             except Exception as e:
                 log_error_with_context(
                     self.logger,
