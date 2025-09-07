@@ -26,8 +26,11 @@ RUN useradd -m -u 1000 appuser && \
 # L4T containers come with optimized OpenCV pre-installed
 
 # Copy requirements and install Python dependencies
-COPY containers/requirements-l4t.txt .
-RUN pip3 install --no-cache-dir --timeout 300 --retries 3 -r requirements-l4t.txt
+COPY containers/requirements-l4t-minimal.txt .
+RUN pip3 install --no-cache-dir --timeout 300 --retries 3 -r requirements-l4t-minimal.txt
+
+# Install ultralytics separately to handle its complex dependencies
+RUN pip3 install --no-cache-dir --timeout 300 --retries 3 ultralytics==8.0.196
 
 # Copy application code
 COPY services/ ./services/

@@ -1,0 +1,27 @@
+# Ultra-minimal L4T requirements - build incrementally
+# Only essential packages for basic functionality
+
+# Basic web framework - tested stable versions
+fastapi==0.85.0
+uvicorn==0.18.3
+
+# Message bus - essential only
+redis==4.3.4
+aioredis==2.0.1
+
+# Basic utilities - minimal set
+pydantic==1.10.12
+pillow==9.5.0
+numpy==1.21.6
+
+# Additional utilities - minimal
+python-multipart==0.0.5
+websockets==10.4
+
+# Skip complex packages for now:
+# - ultralytics (complex dependencies causing puccinialin error)
+# - transformers (large package)
+# - aioredis (can use redis directly)
+# - aiofiles (can use standard file operations)
+
+# Note: OpenCV is pre-installed in L4T containers
