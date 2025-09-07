@@ -5,11 +5,31 @@
 
 echo "🚀 Setting up models for Vision Pipeline..."
 
+# Function to fix permissions
+fix_permissions() {
+    echo "🔧 Fixing directory permissions..."
+    
+    # Check if models directory needs permission fix
+    if [ ! -w "models" ] 2>/dev/null || [ ! -w "models/yolo" ] 2>/dev/null || [ ! -w "models/moondream" ] 2>/dev/null; then
+        echo "⚠️  Fixing ownership and permissions for models directory..."
+        sudo chown -R $USER:$USER models/ 2>/dev/null || true
+        chmod -R 755 models/ 2>/dev/null || true
+        chmod 775 models/yolo/ 2>/dev/null || true
+        chmod 775 models/moondream/ 2>/dev/null || true
+        echo "✅ Permissions fixed"
+    else
+        echo "✅ Permissions look good"
+    fi
+}
+
 # Create models directory structure
 mkdir -p models/yolo
 mkdir -p models/moondream
 
 echo "📁 Created model directories"
+
+# Fix permissions if needed
+fix_permissions
 
 # Check if YOLO model exists
 if [ ! -f "models/yolo/yolo11n.pt" ]; then
@@ -62,20 +82,40 @@ if [ ! -d "models/moondream/moondream2" ] || [ ! -f "models/moondream/moondream2
         # Initialize git-lfs if not already done
         git lfs install 2>/dev/null || true
         
-        # Clone the model repository
+        # Clone the model repository with better error handling
         if [ ! -d "moondream2" ]; then
             echo "🔄 Cloning Moondream2 repository..."
-            git clone https://huggingface.co/vikhyatk/moondream2
-            if [ $? -eq 0 ]; then
+            echo "   (This may take several minutes for large model files...)"
+            
+            # Use timeout to prevent hanging
+            timeout 600 git clone https://huggingface.co/vikhyatk/moondream2 || {
+                echo "⚠️  Git clone timed out or failed. Cleaning up..."
+                rm -rf moondream2
+                echo "💡 You can manually clone later with:"
+                echo "   cd models/moondream && git clone https://huggingface.co/vikhyatk/moondream2"
+                return 1
+            }
+            
+            # Check if clone was successful and complete
+            if [ -d "moondream2" ] && [ -f "moondream2/config.json" ]; then
                 echo "✅ Moondream model downloaded successfully"
             else
-                echo "⚠️  Git clone failed. Model will be downloaded at runtime."
+                echo "⚠️  Clone incomplete. Cleaning up..."
+                rm -rf moondream2
+                echo "💡 Model will be downloaded at runtime, or clone manually"
             fi
         else
-            echo "📁 Moondream repository already exists, pulling latest..."
-            cd moondream2
-            git pull || echo "⚠️  Git pull failed, using existing model"
-            cd ..
+            echo "📁 Moondream repository already exists"
+            
+            # Check if it's a complete clone
+            if [ -f "moondream2/config.json" ]; then
+                echo "✅ Existing model appears complete"
+            else
+                echo "⚠️  Existing clone appears incomplete, attempting to complete..."
+                cd moondream2
+                git lfs pull || echo "⚠️  LFS pull failed"
+                cd ..
+            fi
         fi
         
         cd ../..
