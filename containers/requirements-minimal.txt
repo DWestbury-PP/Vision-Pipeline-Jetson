@@ -20,3 +20,7 @@ opencv-python>=4.8.0
 python-multipart>=0.0.6
 aiofiles>=23.0.0
 websockets>=11.0.0
+
+# CV/ML packages
+ultralytics>=8.0.0
+transformers>=4.30.0

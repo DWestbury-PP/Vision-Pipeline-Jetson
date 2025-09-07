@@ -15,7 +15,8 @@ RUN apt-get update && apt-get install -y \
     libffi7 \
     git \
     git-lfs \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/lib/aarch64-linux-gnu/libffi.so.7 /usr/lib/aarch64-linux-gnu/libffi.so.8
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \
