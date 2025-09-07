@@ -4,6 +4,7 @@ import asyncio
 import time
 import numpy as np
 from typing import Tuple, Optional, Dict, Any
+from datetime import datetime
 
 from .base import CameraInterface, CameraFactory
 from ..shared.models import FrameMetadata
@@ -73,12 +74,12 @@ class MockCamera(CameraInterface):
             # Create frame metadata
             metadata = FrameMetadata(
                 frame_id=self.get_next_frame_id(),
-                timestamp=current_time,
+                timestamp=datetime.utcnow(),
                 camera_id=self.camera_id,
                 width=self.width,
                 height=self.height,
-                format="BGR",
-                source="mock_camera"
+                channels=3,  # BGR has 3 channels
+                fps=self.fps
             )
             
             return frame, metadata
