@@ -321,47 +321,22 @@ class NativeMoondreamService:
                 # Use the most recent frame if available
                 if hasattr(self, 'last_frame') and self.last_frame is not None:
                     # Convert frame to PIL Image
-                    # Apply OpenCV compatibility patch before import
-import os
-os.environ['OPENCV_DISABLE_TYPING'] = '1'
-
-try:
-    import cv2
-    # Patch DictValue if missing
-    if hasattr(cv2, 'dnn') and not hasattr(cv2.dnn, 'DictValue'):
-        class MockDictValue:
-            def __init__(self, *args, **kwargs): pass
-        cv2.dnn.DictValue = MockDictValue
-        print("🔧 Patched cv2.dnn.DictValue in moondream service")
-    CV2_AVAILABLE = True
-except Exception as e:
-    print(f"❌ OpenCV import failed in moondream: {e}")
-    # Mock cv2 for basic compatibility
-    class MockCV2:
-        @staticmethod
-        def __version__(): return "mock-4.5.0"
-        class dnn:
-            class DictValue:
-                def __init__(self, *args, **kwargs): pass
-    cv2 = MockCV2()
-    CV2_AVAILABLE = False
-                    from PIL import Image
-                    frame_rgb = cv2.cvtColor(self.last_frame, cv2.COLOR_BGR2RGB)
-                    pil_image = Image.fromarray(frame_rgb)
-                    
-                    # Encode image for model
-                    enc_image = self.model.encode_image(pil_image)
-                    
-                    # Generate response based on the question and image
-                    response_text = self.model.answer_question(
-                        enc_image,
-                        message,
-                        tokenizer=None
-                    )
-                    self.logger.info(f"Generated VLM response for question: {message[:50]}...")
+                    try:
+                        from PIL import Image
+                        frame_rgb = cv2.cvtColor(self.last_frame, cv2.COLOR_BGR2RGB)
+                        pil_image = Image.fromarray(frame_rgb)
+                        
+                        # Use the model for inference if available
+                        if self.model:
+                            response_text = self.model.answer_question(pil_image, message)
+                        else:
+                            response_text = f"[Model Not Loaded] Echo: '{message}'"
+                    except Exception as e:
+                        self.logger.error(f"Error processing image: {e}")
+                        response_text = f"[Image Processing Error] Echo: '{message}'"
                 else:
-                    # No frame available, answer based on general context
-                    response_text = f"I need to see an image to answer your question: '{message}'. Please ensure the camera is active."
+                    # No frame available, use text-only response
+                    response_text = f"[No Frame Available] Echo: '{message}'"
                 
             processing_time = (time.perf_counter() - start_time) * 1000
             self.chat_requests_processed += 1
