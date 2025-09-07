@@ -1,16 +1,12 @@
-# Moondream Vision Pipeline - Docker Compose Configuration
+# Vision Pipeline Mac - Docker Compose Configuration
 # 
-# HYBRID ARCHITECTURE:
+# HYBRID ARCHITECTURE FOR APPLE SILICON:
 # - Redis, API, Frontend, Fusion: Run in Docker containers
-# - Camera, YOLO, Moondream: Run natively on Apple Silicon for GPU access
+# - Camera, YOLO, Moondream: Run natively for Metal Performance Shaders GPU access
 #
-# For Apple Silicon development:
-#   Use: ./scripts/start-all.sh (manages both containers and native services)
-#
-# For other architectures (Jetson Nano, Thor, etc.):
-#   1. Uncomment the camera, yolo, and moondream services below
-#   2. Uncomment their dependencies in the fusion service
-#   3. Use: docker-compose up --build
+# Usage:
+#   ./scripts/start-all.sh (manages both containers and native services)
+#   ./scripts/quick-start.sh (minimal output)
 #
 # Note: This compose file requires DOCKER_BUILDKIT=0 to properly resolve local base images
 
@@ -18,7 +14,7 @@ services:
   # Redis message bus
   redis:
     image: redis:7-alpine
-    container_name: moondream-redis
+    container_name: vision-pipeline-redis
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes
@@ -31,16 +27,16 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - moondream-network
+      - vision-pipeline-network
 
   # Camera capture service
-  # NOTE: Commented out for Apple Silicon development - runs natively for GPU access
-  # Uncomment for other architectures (Jetson Nano, Thor, etc.)
+  # NOTE: Runs natively on Apple Silicon for optimal performance
+  # Native service managed by ./scripts/start-all.sh
   # camera:
   #   build:
   #     context: .
   #     dockerfile: containers/camera/Dockerfile.fast
-  #   container_name: moondream-camera
+  #   container_name: vision-pipeline-camera
   #   environment:
   #     - REDIS_HOST=redis
   #     - REDIS_PORT=6379
@@ -52,20 +48,20 @@ services:
   #       condition: service_healthy
   #   restart: unless-stopped
   #   networks:
-  #     - moondream-network
+  #     - vision-pipeline-network
   #   # For camera access on macOS
   #   privileged: true
   #   volumes:
   #     - /dev:/dev
 
   # YOLO object detection service
-  # NOTE: Commented out for Apple Silicon development - runs natively for GPU access
-  # Uncomment for other architectures (Jetson Nano, Thor, etc.)
+  # NOTE: Runs natively on Apple Silicon for Metal Performance Shaders GPU access
+  # Native service managed by ./scripts/start-all.sh
   # yolo:
   #   build:
   #     context: .
   #     dockerfile: containers/yolo/Dockerfile.fast
-  #   container_name: moondream-yolo
+  #   container_name: vision-pipeline-yolo
   #   environment:
   #     - REDIS_HOST=redis
   #     - REDIS_PORT=6379
@@ -79,16 +75,16 @@ services:
   #       condition: service_healthy
   #   restart: unless-stopped
   #   networks:
-  #     - moondream-network
+  #     - vision-pipeline-network
 
   # Moondream VLM service
-  # NOTE: Commented out for Apple Silicon development - runs natively for GPU access
-  # Uncomment for other architectures (Jetson Nano, Thor, etc.)
+  # NOTE: Runs natively on Apple Silicon for Metal Performance Shaders GPU access
+  # Native service managed by ./scripts/start-all.sh
   # moondream:
   #   build:
   #     context: .
   #     dockerfile: containers/moondream/Dockerfile.fast
-  #   container_name: moondream-vlm
+  #   container_name: vision-pipeline-vlm
   #   environment:
   #     - REDIS_HOST=redis
   #     - REDIS_PORT=6379
@@ -103,14 +99,14 @@ services:
   #       condition: service_healthy
   #   restart: unless-stopped
   #   networks:
-  #     - moondream-network
+  #     - vision-pipeline-network
 
   # Fusion service
   fusion:
     build:
       context: .
       dockerfile: containers/fusion/Dockerfile.fast
-    container_name: moondream-fusion
+    container_name: vision-pipeline-fusion
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -119,21 +115,16 @@ services:
       redis:
         condition: service_healthy
       # NOTE: yolo and moondream dependencies removed - they run natively on Apple Silicon
-      # For other architectures, uncomment these dependencies:
-      # yolo:
-      #   condition: service_started
-      # moondream:
-      #   condition: service_started
     restart: unless-stopped
     networks:
-      - moondream-network
+      - vision-pipeline-network
 
   # API service
   api:
     build:
       context: .
       dockerfile: containers/api/Dockerfile.fast
-    container_name: moondream-api
+    container_name: vision-pipeline-api
     ports:
       - "8000:8000"
       - "8001:8001"
@@ -149,14 +140,14 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - moondream-network
+      - vision-pipeline-network
 
   # Frontend service
   frontend:
     build:
       context: .
       dockerfile: containers/frontend/Dockerfile
-    container_name: moondream-frontend
+    container_name: vision-pipeline-frontend
     ports:
       - "3000:80"
     environment:
@@ -165,14 +156,13 @@ services:
       - api
     restart: unless-stopped
     networks:
-      - moondream-network
+      - vision-pipeline-network
 
 volumes:
   redis_data:
-  moondream_cache:
 
 networks:
-  moondream-network:
+  vision-pipeline-network:
     driver: bridge
     ipam:
       config:

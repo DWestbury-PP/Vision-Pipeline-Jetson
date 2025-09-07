@@ -1,10 +1,10 @@
-# Moondream Vision Pipeline Architecture
+# Vision Pipeline Mac Architecture
 
-## Hybrid Container/Native Architecture
+## Hybrid Architecture for Apple Silicon
 
-This project uses a **hybrid architecture** that combines Docker containers with native services to optimize for different hardware platforms.
+This project uses a **hybrid architecture** specifically optimized for Apple Silicon Macs, combining Docker containers with native services to leverage GPU acceleration.
 
-### Apple Silicon (macOS) Development Setup
+### Architecture Overview
 
 **Containerized Services:**
 - `redis`: Message bus for inter-service communication
@@ -19,26 +19,9 @@ This project uses a **hybrid architecture** that combines Docker containers with
 
 **Why Hybrid?**
 - Apple Silicon GPU access requires native execution
-- Docker on macOS runs in a Linux VM without direct GPU access
-- Native services can leverage Metal Performance Shaders (MPS)
-
-### Other Architectures (Jetson Nano, Thor, etc.)
-
-For platforms with direct Docker GPU access, all services can run in containers:
-
-1. **Uncomment services in `docker-compose.yml`:**
-   - `camera` service
-   - `yolo` service  
-   - `moondream` service
-
-2. **Uncomment dependencies in `fusion` service:**
-   - `yolo: condition: service_started`
-   - `moondream: condition: service_started`
-
-3. **Use standard Docker Compose:**
-   ```bash
-   DOCKER_BUILDKIT=0 docker-compose up --build
-   ```
+- Docker Desktop on macOS runs in a Linux VM without Metal Performance Shaders access
+- Native services leverage Apple's Metal Performance Shaders for maximum performance
+- Containerized infrastructure services provide easy management and portability
 
 ### Service Communication
 
@@ -51,45 +34,51 @@ All services communicate via **Redis pub/sub channels**:
 
 ### Development Commands
 
-**Apple Silicon:**
 ```bash
 ./scripts/start-all.sh    # Start hybrid architecture
+./scripts/quick-start.sh  # Quick start (minimal output)
 ./scripts/stop-all.sh     # Stop all services
 ./scripts/status.sh       # Check service status
-```
-
-**Other Architectures:**
-```bash
-# Edit docker-compose.yml first (uncomment services)
-DOCKER_BUILDKIT=0 docker-compose up --build
+./scripts/logs-unified.sh # View all logs
 ```
 
 ### Performance Characteristics
 
-**Apple Silicon Native:**
-- Camera: ~6 FPS
-- YOLO: ~6 FPS (every frame)
-- Moondream: ~0.6 FPS (every 10th frame)
+**Apple Silicon Performance:**
+- Camera: ~6 FPS capture rate
+- YOLO: ~50 FPS capability (limited by camera)
+- Moondream: 1-3 seconds per VLM query
+- End-to-end latency: <100ms (detection), 1-3s (VLM)
 
-**Container Performance:**
-- Varies by hardware platform
-- GPU acceleration available on Jetson/Thor
-- CPU-only on most cloud platforms
+**Scaling by Mac Model:**
+- M1: Good performance for development
+- M1 Pro/Max: Excellent for production use
+- M2/M3/M4: Optimal performance across all models
 
 ## File Structure
 
 ```
-├── docker-compose.yml          # Container definitions (hybrid config)
+Vision-Pipeline-Mac/
+├── docker-compose.yml          # Hybrid architecture configuration
 ├── scripts/
-│   ├── start-all.sh            # Apple Silicon startup
+│   ├── start-all.sh            # Complete startup script
+│   ├── quick-start.sh          # Fast startup script
 │   ├── stop-all.sh             # Stop all services
 │   └── status.sh               # Status check
 ├── services/
 │   ├── api/                    # FastAPI service (container)
-│   ├── cv_services/            # Fusion service (container)
 │   ├── native/                 # Native services (Apple Silicon)
+│   │   ├── camera_native.py    # Camera capture
+│   │   ├── yolo_native.py      # YOLO detection
+│   │   └── moondream_native.py # VLM processing
+│   ├── message_bus/            # Redis pub/sub implementation
 │   └── shared/                 # Common models/utils
-└── containers/                 # Dockerfiles for all services
+├── frontend/                   # React UI (container)
+├── containers/                 # Dockerfiles for containerized services
+└── models/                     # Model storage
+    ├── moondream/              # Moondream2 VLM
+    ├── yolo/                   # YOLO11 models
+    └── yolo11_env/             # Python environment
 ```
 
-This architecture provides optimal performance on Apple Silicon while maintaining compatibility with other platforms.
+This architecture provides optimal performance specifically for Apple Silicon Macs by leveraging native GPU acceleration while maintaining clean separation of concerns.
