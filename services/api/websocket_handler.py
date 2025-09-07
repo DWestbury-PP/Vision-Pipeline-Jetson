@@ -12,9 +12,16 @@ from PIL import Image
 try:
     import cv2
     CV2_AVAILABLE = True
-except ImportError as e:
-    print(f"Warning: OpenCV not available: {e}")
+except (ImportError, AttributeError) as e:
+    print(f"Warning: OpenCV not available or incompatible: {e}")
     CV2_AVAILABLE = False
+    # Create a mock cv2 module for basic functionality
+    class MockCV2:
+        COLOR_BGR2RGB = 4
+        @staticmethod
+        def cvtColor(src, code):
+            return src  # Return unchanged for mock
+    cv2 = MockCV2()
 from fastapi import WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
 
