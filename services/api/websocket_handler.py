@@ -8,20 +8,7 @@ from typing import Dict, Set, Optional, Any
 import numpy as np
 from PIL import Image
 
-# Try to import OpenCV, but handle gracefully if it fails
-try:
-    import cv2
-    CV2_AVAILABLE = True
-except (ImportError, AttributeError) as e:
-    print(f"Warning: OpenCV not available or incompatible: {e}")
-    CV2_AVAILABLE = False
-    # Create a mock cv2 module for basic functionality
-    class MockCV2:
-        COLOR_BGR2RGB = 4
-        @staticmethod
-        def cvtColor(src, code):
-            return src  # Return unchanged for mock
-    cv2 = MockCV2()
+import cv2
 from fastapi import WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
 
@@ -378,11 +365,7 @@ class WebSocketHandler:
         """Convert frame to base64 data URL."""
         try:
             # Convert BGR to RGB
-            if CV2_AVAILABLE:
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            else:
-                # Assume frame is already in RGB format or handle gracefully
-                rgb_frame = frame
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
             # Convert to PIL Image
             pil_image = Image.fromarray(rgb_frame)
