@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================
-# Moondream Vision Pipeline - Complete Stack Startup
+# Vision Pipeline Mac - Complete Stack Startup
 # ============================================================================
 # This script starts all services in the correct order for the hybrid architecture
 # - Docker services: Redis, API, Frontend, Fusion
@@ -18,7 +18,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}============================================${NC}"
-echo -e "${BLUE}🚀 Moondream Vision Pipeline Startup${NC}"
+echo -e "${BLUE}🚀 Vision Pipeline Mac Startup${NC}"
 echo -e "${BLUE}============================================${NC}"
 echo ""
 
@@ -97,7 +97,7 @@ DOCKER_BUILDKIT=0 docker-compose up -d redis
 sleep 3
 
 # Verify Redis is healthy
-if docker exec moondream-redis redis-cli ping > /dev/null 2>&1; then
+if docker exec vision-pipeline-redis redis-cli ping > /dev/null 2>&1; then
     echo -e "${GREEN}  ✅ Redis is healthy${NC}"
 else
     echo -e "${RED}  ❌ Redis failed to start${NC}"
