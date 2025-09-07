@@ -27,6 +27,11 @@ services:
     restart: unless-stopped
     networks:
       - vision-pipeline-network
+    # PyTorch recommended flags
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
 
   # Camera capture service
   # NOTE: Now runs in container with CSI/USB camera support
@@ -49,11 +54,21 @@ services:
     restart: unless-stopped
     networks:
       - vision-pipeline-network
+    # PyTorch recommended flags
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
     # For camera access on Jetson
     privileged: true
     volumes:
       - /dev:/dev
       - /tmp/argus_socket:/tmp/argus_socket
+    # PyTorch recommended flags
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
 
   # YOLO object detection service
   # NOTE: Now runs in container with CUDA GPU acceleration
@@ -78,6 +93,11 @@ services:
     restart: unless-stopped
     networks:
       - vision-pipeline-network
+    # PyTorch recommended flags
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
 
   # Moondream VLM service
   # NOTE: Now runs in container with CUDA GPU acceleration
@@ -103,6 +123,11 @@ services:
     restart: unless-stopped
     networks:
       - vision-pipeline-network
+    # PyTorch recommended flags
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
 
   # Fusion service
   fusion:
@@ -126,6 +151,11 @@ services:
     restart: unless-stopped
     networks:
       - vision-pipeline-network
+    # PyTorch recommended flags
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
 
   # API service
   api:
@@ -149,6 +179,11 @@ services:
     restart: unless-stopped
     networks:
       - vision-pipeline-network
+    # PyTorch recommended flags
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
 
   # Frontend service
   frontend:
@@ -165,6 +200,11 @@ services:
     restart: unless-stopped
     networks:
       - vision-pipeline-network
+    # PyTorch recommended flags
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
 
 volumes:
   redis_data:
