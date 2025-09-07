@@ -18,7 +18,7 @@ import torch
 from pathlib import Path
 from typing import Optional, List
 from PIL import Image
-import cv2
+from ..shared.opencv_patch import cv2, CV2_AVAILABLE
 
 # Add the project root to the path
 project_root = Path(__file__).parent.parent.parent
@@ -283,7 +283,7 @@ class NativeMoondreamService:
                 # Use the most recent frame if available
                 if hasattr(self, 'last_frame') and self.last_frame is not None:
                     # Convert frame to PIL Image
-                    import cv2
+                    from ..shared.opencv_patch import cv2, CV2_AVAILABLE
                     from PIL import Image
                     frame_rgb = cv2.cvtColor(self.last_frame, cv2.COLOR_BGR2RGB)
                     pil_image = Image.fromarray(frame_rgb)

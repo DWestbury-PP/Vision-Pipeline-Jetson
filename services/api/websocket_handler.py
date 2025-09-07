@@ -8,7 +8,7 @@ from typing import Dict, Set, Optional, Any
 import numpy as np
 from PIL import Image
 
-import cv2
+from ..shared.opencv_patch import cv2, CV2_AVAILABLE
 from fastapi import WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
 
