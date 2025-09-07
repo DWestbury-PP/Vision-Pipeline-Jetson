@@ -62,7 +62,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <MessageCircle className="h-5 w-5" />
           VLM Chat
           <div className={`ml-2 h-2 w-2 rounded-full ${
-            isConnected ? 'bg-green-500' : 'bg-red-500'
+            isConnected ? 'bg-emerald-400' : 'bg-red-400'
           }`} />
         </CardTitle>
       </CardHeader>

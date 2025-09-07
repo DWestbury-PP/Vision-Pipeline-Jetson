@@ -52,6 +52,15 @@ interface ChatMessage {
 }
 
 function App() {
+  // Enable dark mode on app load
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+    // Force dark mode styling
+    document.body.style.backgroundColor = '#0f172a'; // slate-900
+    document.body.style.color = '#f8fafc'; // slate-50
+    console.log('Dark mode applied:', document.documentElement.classList.contains('dark'));
+  }, []);
+
   // Connection state
   const [isConnected, setIsConnected] = useState(false);
   const [websocket, setWebsocket] = useState<WebSocket | null>(null);
@@ -200,9 +209,9 @@ function App() {
               {/* Connection Status */}
               <div className="flex items-center gap-2">
                 {isConnected ? (
-                  <Wifi className="h-5 w-5 text-green-500" />
+                  <Wifi className="h-5 w-5 text-emerald-400" />
                 ) : (
-                  <WifiOff className="h-5 w-5 text-red-500" />
+                  <WifiOff className="h-5 w-5 text-red-400" />
                 )}
                 <span className="text-sm">
                   {isConnected ? 'Connected' : 'Disconnected'}
@@ -273,19 +282,19 @@ function App() {
                   <div className="pt-4 border-t space-y-2 text-xs">
                     <div className="flex justify-between">
                       <span>Camera:</span>
-                      <span className={systemStatus.camera_active ? 'text-green-600' : 'text-red-600'}>
+                      <span className={systemStatus.camera_active ? 'text-emerald-400' : 'text-red-400'}>
                         {systemStatus.camera_active ? 'Active' : 'Inactive'}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>YOLO:</span>
-                      <span className={systemStatus.yolo_active ? 'text-green-600' : 'text-red-600'}>
+                      <span className={systemStatus.yolo_active ? 'text-emerald-400' : 'text-red-400'}>
                         {systemStatus.yolo_active ? 'Running' : 'Stopped'}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Moondream:</span>
-                      <span className={systemStatus.moondream_instances > 0 ? 'text-green-600' : 'text-red-600'}>
+                      <span className={systemStatus.moondream_instances > 0 ? 'text-emerald-400' : 'text-red-400'}>
                         {systemStatus.moondream_instances} instances
                       </span>
                     </div>

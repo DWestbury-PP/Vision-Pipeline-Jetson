@@ -122,7 +122,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
       }
 
       // Draw bounding box
-      ctx.strokeStyle = '#00ff00';
+      ctx.strokeStyle = '#10b981'; // emerald-500 - better for dark mode
       ctx.lineWidth = 2;
       ctx.strokeRect(x, y, width, height);
 
@@ -136,11 +136,11 @@ export const CameraView: React.FC<CameraViewProps> = ({
       const textWidth = textMetrics.width;
       const textHeight = 20;
 
-      ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.9)'; // emerald-500 with opacity
       ctx.fillRect(x, y - textHeight, textWidth + 8, textHeight);
 
       // Draw label text
-      ctx.fillStyle = '#000000';
+      ctx.fillStyle = '#ffffff'; // white text for better contrast on dark background
       ctx.fillText(label, x + 4, y - 4);
     });
   };
@@ -178,7 +178,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
           <Camera className="h-5 w-5" />
           Camera View
           <div className={`ml-2 h-2 w-2 rounded-full ${
-            isConnected ? 'bg-green-500' : 'bg-red-500'
+            isConnected ? 'bg-emerald-400' : 'bg-red-400'
           }`} />
         </CardTitle>
       </CardHeader>
