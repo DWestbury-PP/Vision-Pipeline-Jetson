@@ -5,9 +5,16 @@ import json
 import base64
 import io
 from typing import Dict, Set, Optional, Any
-import cv2
 import numpy as np
 from PIL import Image
+
+# Try to import OpenCV, but handle gracefully if it fails
+try:
+    import cv2
+    CV2_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: OpenCV not available: {e}")
+    CV2_AVAILABLE = False
 from fastapi import WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
 
@@ -364,7 +371,11 @@ class WebSocketHandler:
         """Convert frame to base64 data URL."""
         try:
             # Convert BGR to RGB
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            if CV2_AVAILABLE:
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            else:
+                # Assume frame is already in RGB format or handle gracefully
+                rgb_frame = frame
             
             # Convert to PIL Image
             pil_image = Image.fromarray(rgb_frame)
