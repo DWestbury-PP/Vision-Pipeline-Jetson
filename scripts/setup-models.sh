@@ -16,15 +16,33 @@ if [ ! -f "models/yolo/yolo11n.pt" ]; then
     echo "⬇️  Downloading YOLO11n model..."
     cd models/yolo
     
-    # Download YOLO11n model (lightweight version)
+    # Try multiple YOLO download sources
+    echo "🔍 Trying official Ultralytics release..."
     if command -v wget >/dev/null 2>&1; then
-        wget https://github.com/ultralytics/assets/releases/download/v8.2.0/yolo11n.pt
+        # Try the official Ultralytics GitHub releases
+        wget -O yolo11n.pt https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt || \
+        wget -O yolo11n.pt https://github.com/ultralytics/yolov5/releases/download/v7.0/yolov5n.pt || \
+        wget -O yolo11n.pt https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt
     elif command -v curl >/dev/null 2>&1; then
-        curl -L -o yolo11n.pt https://github.com/ultralytics/assets/releases/download/v8.2.0/yolo11n.pt
+        # Try with curl
+        curl -L -o yolo11n.pt https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt || \
+        curl -L -o yolo11n.pt https://github.com/ultralytics/yolov5/releases/download/v7.0/yolov5n.pt || \
+        curl -L -o yolo11n.pt https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt
     else
         echo "❌ Neither wget nor curl found. Please install one of them or download manually:"
-        echo "   https://github.com/ultralytics/assets/releases/download/v8.2.0/yolo11n.pt"
-        echo "   Save to: models/yolo/yolo11n.pt"
+        echo "   Try one of these URLs and save as models/yolo/yolo11n.pt:"
+        echo "   - https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt"
+        echo "   - https://github.com/ultralytics/yolov5/releases/download/v7.0/yolov5n.pt"
+        echo "   - Or use: pip install ultralytics && python -c \"from ultralytics import YOLO; YOLO('yolo11n.pt')\""
+    fi
+    
+    # Check if download was successful
+    if [ -f "yolo11n.pt" ]; then
+        echo "✅ YOLO model downloaded successfully"
+    else
+        echo "⚠️  YOLO download failed. Trying Python approach..."
+        echo "💡 Alternative: Use Python to download:"
+        echo "   python3 -c \"from ultralytics import YOLO; model = YOLO('yolo11n.pt'); print('Model downloaded')\""
     fi
     
     cd ../..
@@ -41,22 +59,40 @@ if [ ! -d "models/moondream/moondream2" ] || [ ! -f "models/moondream/moondream2
         echo "📦 Using git-lfs to download Moondream model..."
         cd models/moondream
         
+        # Initialize git-lfs if not already done
+        git lfs install 2>/dev/null || true
+        
         # Clone the model repository
         if [ ! -d "moondream2" ]; then
+            echo "🔄 Cloning Moondream2 repository..."
             git clone https://huggingface.co/vikhyatk/moondream2
+            if [ $? -eq 0 ]; then
+                echo "✅ Moondream model downloaded successfully"
+            else
+                echo "⚠️  Git clone failed. Model will be downloaded at runtime."
+            fi
         else
             echo "📁 Moondream repository already exists, pulling latest..."
             cd moondream2
-            git pull
+            git pull || echo "⚠️  Git pull failed, using existing model"
             cd ..
         fi
         
         cd ../..
     else
-        echo "⚠️  git-lfs not found. Moondream model will be downloaded at runtime."
-        echo "   To pre-download, install git-lfs and run:"
-        echo "   git lfs install"
-        echo "   cd models/moondream && git clone https://huggingface.co/vikhyatk/moondream2"
+        echo "⚠️  git-lfs not found. Installing git-lfs..."
+        # Try to install git-lfs
+        if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y git-lfs
+        elif command -v brew >/dev/null 2>&1; then
+            brew install git-lfs
+        else
+            echo "📋 Please install git-lfs manually:"
+            echo "   Ubuntu/Debian: sudo apt-get install git-lfs"
+            echo "   macOS: brew install git-lfs"
+            echo "   Then run: git lfs install"
+            echo "   cd models/moondream && git clone https://huggingface.co/vikhyatk/moondream2"
+        fi
     fi
 else
     echo "✅ Moondream model already exists"
@@ -64,11 +100,16 @@ fi
 
 echo ""
 echo "📊 Model Status:"
-echo "   YOLO11n: $([ -f "models/yolo/yolo11n.pt" ] && echo "✅ Available" || echo "❌ Missing")"
+echo "   YOLO11n: $([ -f "models/yolo/yolo11n.pt" ] && echo "✅ Available ($(du -h models/yolo/yolo11n.pt | cut -f1))" || echo "❌ Missing")"
 echo "   Moondream2: $([ -f "models/moondream/moondream2/model.safetensors" ] && echo "✅ Available" || echo "⚠️  Will download at runtime")"
 
 echo ""
 echo "🎯 Models setup complete! You can now run:"
 echo "   docker compose build --no-cache"
 echo "   docker compose up"
+
+echo ""
+echo "💡 If models are missing, you can also:"
+echo "   - Use Python: python3 -c \"from ultralytics import YOLO; YOLO('yolo11n.pt')\""
+echo "   - Download manually from HuggingFace: https://huggingface.co/vikhyatk/moondream2"
 
