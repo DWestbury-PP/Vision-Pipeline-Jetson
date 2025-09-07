@@ -16,7 +16,7 @@ RUN useradd -m -u 1000 appuser && \
 
 # Copy requirements and install Python dependencies
 COPY containers/requirements-jetson.txt .
-RUN pip3 install --no-cache-dir -r requirements-jetson.txt
+RUN pip3 install --no-cache-dir --timeout 300 --retries 3 -r requirements-jetson.txt
 
 # Copy application code
 COPY services/ ./services/
