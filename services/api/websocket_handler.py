@@ -329,10 +329,11 @@ class WebSocketHandler:
     async def _handle_fusion_result(self, message) -> None:
         """Handle fusion results."""
         try:
-            # Assuming the message contains a ProcessingPipelineResult
+            # Extract ProcessingPipelineResult from FusionResultMessage
+            fusion_result = message.result if hasattr(message, 'result') else message
             ws_message = WSDetectionUpdate(
-                frame_id=message.frame_metadata.frame_id,
-                fused_result=message
+                frame_id=fusion_result.frame_metadata.frame_id,
+                fused_result=fusion_result
             )
             
             await self.manager.broadcast_filtered(

@@ -30,8 +30,10 @@ RUN pip3 install --upgrade pip setuptools wheel
 COPY containers/requirements-l4t-minimal.txt .
 RUN pip3 install --no-cache-dir --timeout 300 --retries 3 -r requirements-l4t-minimal.txt
 
-# Skip ultralytics for now due to dependency issues - will install at runtime if needed
-# RUN pip3 install --no-cache-dir --timeout 300 --retries 3 --only-binary=all --force-reinstall ultralytics==8.0.120
+# Install ultralytics for YOLO inference
+RUN pip3 install --no-cache-dir --timeout 600 --retries 5 ultralytics==8.0.120 || \
+    pip3 install --no-cache-dir --timeout 600 --retries 3 ultralytics || \
+    echo "Warning: Failed to install ultralytics, YOLO will run in mock mode"
 
 # Copy application code
 COPY services/ ./services/

@@ -32,8 +32,10 @@ RUN pip3 install --upgrade pip setuptools wheel
 COPY containers/requirements-l4t-minimal.txt .
 RUN pip3 install --no-cache-dir --timeout 300 --retries 3 -r requirements-l4t-minimal.txt
 
-# Skip transformers for now due to dependency issues - will install at runtime if needed  
-# RUN pip3 install --no-cache-dir --timeout 300 --retries 3 --only-binary=all --force-reinstall transformers==4.21.0
+# Install transformers for Moondream VLM inference
+RUN pip3 install --no-cache-dir --timeout 600 --retries 5 transformers==4.30.0 || \
+    pip3 install --no-cache-dir --timeout 600 --retries 3 transformers || \
+    echo "Warning: Failed to install transformers, Moondream will run in mock mode"
 
 # Copy application code
 COPY services/ ./services/
