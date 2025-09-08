@@ -163,6 +163,7 @@ class WebSocketHandler:
         self.last_yolo_time = 0
         self.last_vlm_time = 0
         self.last_fusion_time = 0
+        self.last_status_broadcast = 0  # Track when we last sent status
         
         # Frame processing
         self.latest_frame: Optional[np.ndarray] = None
@@ -254,6 +255,11 @@ class WebSocketHandler:
         try:
             import time
             self.last_frame_time = time.time()  # Track camera activity
+            
+            # Broadcast status updates periodically (every 10 seconds)
+            if time.time() - self.last_status_broadcast > 10:
+                await self._broadcast_status_update()
+                self.last_status_broadcast = time.time()
             
             self.logger.info(f"Handling frame update for frame {metadata.frame_id}")
             self.latest_frame = frame
@@ -389,6 +395,39 @@ class WebSocketHandler:
             
         except Exception as e:
             log_error_with_context(self.logger, e, operation="handle_status_update")
+    
+    async def _broadcast_status_update(self) -> None:
+        """Broadcast current service status to all clients."""
+        try:
+            import time
+            current_time = time.time()
+            
+            # Determine service status based on recent activity
+            camera_active = (current_time - self.last_frame_time) < 30
+            yolo_active = (current_time - self.last_yolo_time) < 30
+            moondream_active = (current_time - self.last_vlm_time) < 60
+            
+            # Create status message matching frontend expectations
+            from ..shared.models import SystemStatus
+            from .models import WSStatusUpdate
+            
+            system_status = SystemStatus(
+                camera_active=camera_active,
+                yolo_active=yolo_active,
+                moondream_instances=1 if moondream_active else 0,
+                message_bus_connected=True,
+                frames_processed=0,  # Could track this
+                average_fps=0.0     # Could calculate this
+            )
+            
+            ws_message = WSStatusUpdate(status=system_status)
+            
+            await self.manager.broadcast(
+                ws_message.dict() if hasattr(ws_message, 'dict') else ws_message.model_dump(mode='json')
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Failed to broadcast status update: {e}")
     
     async def _handle_chat_response(self, message: ChatResponseMessage) -> None:
         """Handle chat responses."""

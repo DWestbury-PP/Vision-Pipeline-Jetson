@@ -208,7 +208,8 @@ class RedisMessageBus(MessageBus):
                                     # Import message classes dynamically to avoid circular imports
                                     from ..shared.models import (
                                         DetectionMessage, VLMMessage, ChatRequestMessage,
-                                        ChatResponseMessage, StatusMessage, ConfigurationMessage
+                                        ChatResponseMessage, StatusMessage, ConfigurationMessage,
+                                        FusionResultMessage
                                     )
                                     
                                     message_classes = {
@@ -218,7 +219,8 @@ class RedisMessageBus(MessageBus):
                                         'chat_response': ChatResponseMessage,
                                         'status': StatusMessage,
                                         'configuration': ConfigurationMessage,
-                                        'frame': FrameMessage
+                                        'frame': FrameMessage,
+                                        'fusion_result': FusionResultMessage
                                     }
                                     
                                     message_class = message_classes.get(message_type, BusMessage)
