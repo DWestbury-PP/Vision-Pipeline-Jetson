@@ -123,36 +123,68 @@ class MockCamera(CameraInterface):
         return frame
     
     def _add_test_objects(self, frame: np.ndarray, t: float) -> None:
-        """Add geometric shapes that move around for testing object detection."""
-        # Moving rectangle (simulates a "car")
-        rect_x = int(200 + 100 * np.sin(t * 0.5))
-        rect_y = int(200 + 50 * np.cos(t * 0.3))
-        rect_w, rect_h = 120, 80
+        """Add realistic objects that YOLO can detect."""
+        # Car-like object (dark rectangular body with lighter top)
+        car_x = int(200 + 150 * np.sin(t * 0.3))
+        car_y = int(300 + 50 * np.cos(t * 0.2))
+        car_w, car_h = 160, 90
         
-        # Ensure rectangle stays within bounds
-        rect_x = max(0, min(self.width - rect_w, rect_x))
-        rect_y = max(0, min(self.height - rect_h, rect_y))
+        # Ensure car stays within bounds
+        car_x = max(0, min(self.width - car_w, car_x))
+        car_y = max(0, min(self.height - car_h, car_y))
         
-        frame[rect_y:rect_y+rect_h, rect_x:rect_x+rect_w] = [0, 255, 255]  # Yellow rectangle
+        # Car body (dark blue/gray)
+        frame[car_y:car_y+car_h, car_x:car_x+car_w] = [80, 80, 120]
+        # Car roof (lighter)
+        roof_h = car_h // 3
+        frame[car_y:car_y+roof_h, car_x+20:car_x+car_w-20] = [120, 120, 160]
+        # Car windows (dark)
+        frame[car_y+5:car_y+roof_h-5, car_x+30:car_x+car_w-30] = [20, 20, 40]
         
-        # Moving circle (simulates a "person") - optimized version
-        circle_x = int(self.width // 2 + 200 * np.cos(t * 0.8))
-        circle_y = int(self.height // 2 + 150 * np.sin(t * 0.6))
-        circle_radius = 40
+        # Person-like object (vertical rectangle with head)
+        person_x = int(self.width // 2 + 250 * np.cos(t * 0.6))
+        person_y = int(200 + 100 * np.sin(t * 0.4))
+        person_w, person_h = 50, 120
         
-        # Efficient circle drawing using NumPy
-        y_min = max(0, circle_y - circle_radius)
-        y_max = min(self.height, circle_y + circle_radius + 1)
-        x_min = max(0, circle_x - circle_radius)
-        x_max = min(self.width, circle_x + circle_radius + 1)
+        # Ensure person stays within bounds  
+        person_x = max(0, min(self.width - person_w, person_x))
+        person_y = max(0, min(self.height - person_h, person_y))
+        
+        # Person body (skin tone)
+        frame[person_y+30:person_y+person_h, person_x:person_x+person_w] = [180, 140, 120]
+        # Person head (round-ish)
+        head_x = person_x + person_w // 2
+        head_y = person_y + 15
+        head_radius = 25
+        
+        # Efficient circle drawing using NumPy for head
+        y_min = max(0, head_y - head_radius)
+        y_max = min(self.height, head_y + head_radius + 1)
+        x_min = max(0, head_x - head_radius)
+        x_max = min(self.width, head_x + head_radius + 1)
         
         if y_min < y_max and x_min < x_max:
-            # Create coordinate grids for the circle region
+            # Create coordinate grids for the head region
             yy, xx = np.mgrid[y_min:y_max, x_min:x_max]
-            # Calculate distance from circle center
-            circle_mask = (xx - circle_x)**2 + (yy - circle_y)**2 <= circle_radius**2
-            # Apply blue color to pixels within circle
-            frame[y_min:y_max, x_min:x_max][circle_mask] = [255, 0, 0]  # Blue circle
+            # Calculate distance from head center
+            head_mask = (xx - head_x)**2 + (yy - head_y)**2 <= head_radius**2
+            # Apply skin tone to head
+            frame[y_min:y_max, x_min:x_max][head_mask] = [200, 160, 140]  # Head color
+            
+        # Add a bottle/cup object (common YOLO class)
+        bottle_x = int(100 + 80 * np.sin(t * 0.9))
+        bottle_y = int(400 + 30 * np.cos(t * 0.7))
+        bottle_w, bottle_h = 30, 80
+        
+        # Ensure bottle stays within bounds
+        bottle_x = max(0, min(self.width - bottle_w, bottle_x))
+        bottle_y = max(0, min(self.height - bottle_h, bottle_y))
+        
+        # Bottle body (green/brown)
+        frame[bottle_y:bottle_y+bottle_h, bottle_x:bottle_x+bottle_w] = [60, 120, 60]
+        # Bottle cap (darker)
+        cap_h = bottle_h // 6
+        frame[bottle_y:bottle_y+cap_h, bottle_x:bottle_x+bottle_w] = [40, 80, 40]
     
     def _add_text_overlay(self, frame: np.ndarray) -> None:
         """Add text overlay to the frame."""

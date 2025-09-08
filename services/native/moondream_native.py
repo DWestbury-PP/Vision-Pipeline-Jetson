@@ -167,6 +167,7 @@ class NativeMoondreamService:
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_path,
                 trust_remote_code=True,
+                local_files_only=True,
                 torch_dtype=torch.float16 if self.device.type == "mps" else torch.float32
             )
             self.model = self.model.to(self.device)
@@ -174,7 +175,8 @@ class NativeMoondreamService:
             # Load tokenizer
             self.tokenizer = AutoTokenizer.from_pretrained(
                 model_path,
-                trust_remote_code=True
+                trust_remote_code=True,
+                local_files_only=True
             )
             
             self.logger.info("Model and tokenizer loaded successfully!")
