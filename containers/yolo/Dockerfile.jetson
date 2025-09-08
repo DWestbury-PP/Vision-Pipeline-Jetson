@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-dev \
     libffi8 \
+    python3-opencv \
+    libopencv-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -30,8 +32,9 @@ COPY containers/requirements-l4t-minimal.txt .
 RUN pip3 install --no-cache-dir --timeout 300 --retries 3 -r requirements-l4t-minimal.txt
 
 # Install ultralytics for YOLO inference (Ubuntu 22.04 should handle all dependencies properly)
-RUN pip3 install --no-cache-dir ultralytics==8.3.0 || \
-    echo "Warning: Failed to install ultralytics, YOLO will run in mock mode"
+RUN pip3 install --no-cache-dir ultralytics==8.3.0 && \
+    echo "✅ Ultralytics installed successfully" || \
+    (echo "❌ Failed to install ultralytics, YOLO will run in mock mode" && exit 1)
 
 # Copy application code
 COPY services/ ./services/
