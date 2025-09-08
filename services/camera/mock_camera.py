@@ -89,36 +89,21 @@ class MockCamera(CameraInterface):
             return None
     
     def _generate_synthetic_frame(self) -> np.ndarray:
-        """Generate a synthetic frame with animated patterns using efficient NumPy operations."""
-        # Add time-based animation
-        t = time.time() * 2  # Animation speed
+        """Generate a STATIC TEST FRAME - NO MORE ANIMATION."""
+        # Create a simple static gray image
+        frame = np.ones((self.height, self.width, 3), dtype=np.uint8) * 200
         
-        # Create coordinate grids using NumPy meshgrid (vectorized)
-        x = np.arange(self.width, dtype=np.float32)
-        y = np.arange(self.height, dtype=np.float32)
-        X, Y = np.meshgrid(x, y)
+        # Add a large dark rectangle (TV/monitor shape)
+        frame[200:880, 400:1520] = [30, 30, 30]
+        frame[220:860, 420:1500] = [100, 100, 100]
         
-        # Create moving wave patterns using vectorized NumPy operations
-        wave_x = 128 + 100 * np.sin(X * 0.01 + t)
-        wave_y = 128 + 100 * np.cos(Y * 0.01 + t * 0.7)
-        green_pattern = 128 + 80 * np.sin(X * 0.005 + Y * 0.005 + t)
+        # Add some colored rectangles that might be detected
+        frame[300:400, 200:350] = [255, 100, 0]  # Orange rectangle
+        frame[300:400, 1570:1720] = [0, 255, 0]  # Green rectangle
+        frame[800:950, 100:400] = [150, 100, 50]  # Brown rectangle
         
-        # Clip values to valid range and convert to uint8
-        wave_x = np.clip(wave_x, 0, 255).astype(np.uint8)
-        wave_y = np.clip(wave_y, 0, 255).astype(np.uint8)
-        green_pattern = np.clip(green_pattern, 0, 255).astype(np.uint8)
-        
-        # Create frame with RGB channels
-        frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
-        frame[:, :, 0] = wave_x  # Blue channel
-        frame[:, :, 1] = green_pattern  # Green channel
-        frame[:, :, 2] = wave_y  # Red channel
-        
-        # Add some geometric shapes for object detection testing
-        self._add_test_objects(frame, t)
-        
-        # Add text overlay
-        self._add_text_overlay(frame)
+        # Add white text area
+        frame[450:550, 700:1200] = [255, 255, 255]
         
         return frame
     
