@@ -103,7 +103,7 @@ class Config(BaseSettings):
     
     # YOLO configuration
     yolo_model: str = Field(default="yolo11n.pt", env="YOLO_MODEL")
-    yolo_confidence: float = Field(default=0.5, env="YOLO_CONFIDENCE")
+    yolo_confidence: float = Field(default=0.1, env="YOLO_CONFIDENCE")  # Lower threshold for synthetic objects
     yolo_device: str = Field(default="cuda", env="YOLO_DEVICE")
     yolo_frame_stride: int = Field(default=1, env="YOLO_FRAME_STRIDE")
     
