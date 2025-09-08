@@ -138,6 +138,15 @@ class NativeMoondreamService:
                 self.tokenizer = None
                 return True  # Return True so service doesn't fail
                 
+            # Fix Python 3.8 compatibility issues in downloaded model code
+            try:
+                import subprocess
+                subprocess.run(["/usr/local/bin/fix-moondream-py38.sh"], 
+                             capture_output=True, timeout=30, check=False)
+                self.logger.info("Applied Python 3.8 compatibility fixes")
+            except Exception as e:
+                self.logger.warning(f"Could not apply compatibility fixes: {e}")
+                
             self.logger.info("Loading Moondream2 model from local files...")
             
             # Set device - use MPS for Apple Silicon

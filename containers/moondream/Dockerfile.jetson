@@ -37,6 +37,12 @@ RUN pip3 install --no-cache-dir --timeout 600 --retries 5 transformers==4.30.0 |
     pip3 install --no-cache-dir --timeout 600 --retries 3 transformers || \
     echo "Warning: Failed to install transformers, Moondream will run in mock mode"
 
+# Fix Python 3.8 compatibility issue in Moondream model
+RUN echo '#!/bin/bash' > /usr/local/bin/fix-moondream-py38.sh && \
+    echo 'find /home/appuser/.cache/huggingface/modules/transformers_modules/ -name "*.py" -exec sed -i "s/tuple\[/Tuple[/g; s/list\[/List[/g; s/dict\[/Dict[/g" {} \; 2>/dev/null || true' >> /usr/local/bin/fix-moondream-py38.sh && \
+    echo 'find /home/appuser/.cache/huggingface/modules/transformers_modules/ -name "*.py" -exec sed -i "1i from typing import Tuple, List, Dict" {} \; 2>/dev/null || true' >> /usr/local/bin/fix-moondream-py38.sh && \
+    chmod +x /usr/local/bin/fix-moondream-py38.sh
+
 # Copy application code
 COPY services/ ./services/
 COPY scripts/ ./scripts/
