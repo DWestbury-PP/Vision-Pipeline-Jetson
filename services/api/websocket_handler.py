@@ -330,7 +330,18 @@ class WebSocketHandler:
         """Handle fusion results."""
         try:
             # Extract ProcessingPipelineResult from FusionResultMessage
-            fusion_result = message.result if hasattr(message, 'result') else message
+            if hasattr(message, 'result'):
+                # It's a FusionResultMessage with the result wrapped
+                fusion_result = message.result
+            else:
+                # Fallback for direct ProcessingPipelineResult (shouldn't happen)
+                fusion_result = message
+            
+            # Now safely access frame_metadata
+            if not hasattr(fusion_result, 'frame_metadata'):
+                self.logger.warning(f"Fusion result missing frame_metadata: {type(fusion_result)}")
+                return
+                
             ws_message = WSDetectionUpdate(
                 frame_id=fusion_result.frame_metadata.frame_id,
                 fused_result=fusion_result

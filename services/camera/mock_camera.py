@@ -89,21 +89,52 @@ class MockCamera(CameraInterface):
             return None
     
     def _generate_synthetic_frame(self) -> np.ndarray:
-        """Generate a STATIC TEST FRAME - NO MORE ANIMATION."""
-        # Create a simple static gray image
-        frame = np.ones((self.height, self.width, 3), dtype=np.uint8) * 200
+        """Generate a STATIC TEST FRAME with realistic objects for YOLO."""
+        # Create a simple office/room scene
+        frame = np.ones((self.height, self.width, 3), dtype=np.uint8) * 240  # Light gray background (wall)
         
-        # Add a large dark rectangle (TV/monitor shape)
-        frame[200:880, 400:1520] = [30, 30, 30]
-        frame[220:860, 420:1500] = [100, 100, 100]
+        # Add a floor (darker gray)
+        frame[700:, :] = [180, 180, 180]
         
-        # Add some colored rectangles that might be detected
-        frame[300:400, 200:350] = [255, 100, 0]  # Orange rectangle
-        frame[300:400, 1570:1720] = [0, 255, 0]  # Green rectangle
-        frame[800:950, 100:400] = [150, 100, 50]  # Brown rectangle
+        # Add a large monitor/TV (black screen with gray bezel)
+        # This should be detected as a TV or monitor
+        frame[150:500, 700:1200] = [40, 40, 40]  # Bezel
+        frame[170:480, 720:1180] = [20, 20, 20]  # Screen
         
-        # Add white text area
-        frame[450:550, 700:1200] = [255, 255, 255]
+        # Add a person silhouette (standing figure)
+        # Head (flesh tone)
+        person_x, person_y = 400, 300
+        head_size = 60
+        # Draw head as a filled circle-ish shape
+        for y in range(person_y, person_y + head_size):
+            for x in range(person_x - head_size//2, person_x + head_size//2):
+                if 0 <= x < self.width and 0 <= y < self.height:
+                    dist = ((x - person_x)**2 + (y - person_y - head_size//2)**2) ** 0.5
+                    if dist < head_size//2:
+                        frame[y, x] = [210, 180, 160]  # Skin tone
+        
+        # Body (dark clothing)
+        frame[person_y + head_size:person_y + 250, person_x - 60:person_x + 60] = [50, 50, 80]  # Torso
+        frame[person_y + 250:person_y + 400, person_x - 40:person_x + 40] = [40, 40, 70]  # Legs
+        
+        # Add a laptop on a desk (should be detected as laptop)
+        frame[550:650, 1300:1500] = [150, 150, 150]  # Laptop base
+        frame[500:550, 1320:1480] = [160, 160, 160]  # Laptop screen back
+        frame[510:540, 1330:1470] = [30, 30, 30]  # Laptop screen
+        
+        # Add a chair (might be detected)
+        frame[500:700, 900:1100] = [100, 70, 50]  # Brown chair
+        frame[450:500, 920:1080] = [110, 80, 60]  # Chair back
+        
+        # Add a bottle on desk (should be detected as bottle)
+        frame[480:550, 1200:1230] = [0, 100, 0]  # Green bottle
+        frame[470:480, 1205:1225] = [50, 50, 50]  # Bottle cap
+        
+        # Add a cell phone (might be detected)
+        frame[560:590, 1250:1280] = [30, 30, 30]  # Black phone
+        
+        # Add a book (might be detected)
+        frame[560:590, 1150:1220] = [150, 50, 50]  # Red book
         
         return frame
     
