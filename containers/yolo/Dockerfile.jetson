@@ -15,13 +15,15 @@ RUN apt-get update && apt-get install -y --fix-missing \
     || (apt-get update --fix-missing && apt-get install -y libffi7 software-properties-common) \
     && rm -rf /var/lib/apt/lists/* || true
 
-# Try to install libffi8 from jammy repository for OpenCV compatibility
-RUN echo "deb http://ports.ubuntu.com/ubuntu-ports jammy main" >> /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get install -y --fix-missing libffi8 2>/dev/null || \
-    (echo "libffi8 not available, creating symlink fallback" && \
-     ln -sf /usr/lib/aarch64-linux-gnu/libffi.so.7 /usr/lib/aarch64-linux-gnu/libffi.so.8) && \
-    rm -rf /var/lib/apt/lists/* || true
+# Download and install libffi8 manually for OpenCV compatibility
+RUN cd /tmp && \
+    wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/libf/libffi/libffi8_3.4.2-4_arm64.deb || \
+    wget -q http://archive.ubuntu.com/ubuntu/pool/main/libf/libffi/libffi8_3.4.2-4_arm64.deb || \
+    echo "libffi8 download failed" && \
+    (dpkg -i libffi8_*.deb 2>/dev/null || \
+     (echo "libffi8 installation failed, using fallback symlink" && \
+      ln -sf /usr/lib/aarch64-linux-gnu/libffi.so.7 /usr/lib/aarch64-linux-gnu/libffi.so.8)) && \
+    rm -f /tmp/libffi8_*.deb || true
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \
@@ -36,10 +38,19 @@ RUN pip3 install --upgrade pip setuptools wheel
 COPY containers/requirements-l4t-minimal.txt .
 RUN pip3 install --no-cache-dir --timeout 300 --retries 3 -r requirements-l4t-minimal.txt
 
-# Install ultralytics for YOLO inference
-RUN pip3 install --no-cache-dir --timeout 600 --retries 5 ultralytics==8.0.120 || \
-    pip3 install --no-cache-dir --timeout 600 --retries 3 ultralytics || \
-    echo "Warning: Failed to install ultralytics, YOLO will run in mock mode"
+# Install ultralytics for YOLO inference (exclude opencv to avoid conflicts)
+RUN pip3 install --no-cache-dir --timeout 600 --retries 5 \
+    --no-deps ultralytics==8.0.120 && \
+    pip3 install --no-cache-dir \
+    matplotlib>=3.2.2 \
+    Pillow>=7.1.2 \
+    PyYAML>=5.3.1 \
+    requests>=2.23.0 \
+    scipy>=1.4.1 \
+    tqdm>=4.64.0 \
+    pandas>=1.1.4 \
+    seaborn>=0.11.0 \
+    || echo "Warning: Failed to install ultralytics, YOLO will run in mock mode"
 
 # Copy application code
 COPY services/ ./services/
