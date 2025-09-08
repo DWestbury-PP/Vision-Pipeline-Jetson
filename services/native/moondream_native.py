@@ -179,48 +179,27 @@ class NativeMoondreamService:
                 return False
             
             self.logger.info(f"Loading model from {model_path}")
-            # Try loading with different strategies
-            try:
-                # Strategy 1: Force offline mode with no remote code
-                self.logger.info("Attempting to load model with offline=True, trust_remote_code=False")
-                self.model = AutoModelForCausalLM.from_pretrained(
-                    model_path,
-                    trust_remote_code=False,
-                    local_files_only=True,
-                    offline=True,
-                    torch_dtype=torch.float16 if self.device.type == "mps" else torch.float32
-                )
-                self.tokenizer = AutoTokenizer.from_pretrained(
-                    model_path,
-                    trust_remote_code=False,
-                    local_files_only=True,
-                    offline=True
-                )
-                self.logger.info("Successfully loaded model without remote code")
-            except Exception as e1:
-                self.logger.warning(f"Failed to load without remote code: {e1}")
-                try:
-                    # Strategy 2: Add model path to Python path and try again
-                    self.logger.info("Adding model path to sys.path and retrying")
-                    import sys
-                    if model_path not in sys.path:
-                        sys.path.insert(0, model_path)
-                    
-                    self.model = AutoModelForCausalLM.from_pretrained(
-                        model_path,
-                        trust_remote_code=True,
-                        local_files_only=True,
-                        torch_dtype=torch.float16 if self.device.type == "mps" else torch.float32
-                    )
-                    self.tokenizer = AutoTokenizer.from_pretrained(
-                        model_path,
-                        trust_remote_code=True,
-                        local_files_only=True
-                    )
-                    self.logger.info("Successfully loaded model with sys.path fix")
-                except Exception as e2:
-                    self.logger.error(f"Both loading strategies failed: {e1}, {e2}")
-                    raise e2
+            # Load model with trust_remote_code=True (required for Moondream)
+            self.logger.info("Loading Moondream model with trust_remote_code=True")
+            
+            # Add model path to Python path for local imports
+            import sys
+            if model_path not in sys.path:
+                sys.path.insert(0, model_path)
+            
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_path,
+                trust_remote_code=True,
+                local_files_only=True,
+                torch_dtype=torch.float16 if self.device.type == "mps" else torch.float32
+            )
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_path,
+                trust_remote_code=True,
+                local_files_only=True
+            )
+            
+            self.logger.info("Successfully loaded Moondream model")
             
             if self.model:
                 self.model = self.model.to(self.device)
