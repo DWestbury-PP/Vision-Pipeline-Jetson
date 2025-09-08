@@ -89,24 +89,30 @@ class MockCamera(CameraInterface):
             return None
     
     def _generate_synthetic_frame(self) -> np.ndarray:
-        """Generate a synthetic frame with animated patterns."""
-        # Create base frame with gradient
-        frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
-        
+        """Generate a synthetic frame with animated patterns using efficient NumPy operations."""
         # Add time-based animation
         t = time.time() * 2  # Animation speed
         
-        # Create moving gradient
-        for y in range(self.height):
-            for x in range(self.width):
-                # Create moving wave pattern
-                wave_x = int(128 + 100 * np.sin(x * 0.01 + t))
-                wave_y = int(128 + 100 * np.cos(y * 0.01 + t * 0.7))
-                
-                # RGB channels with different patterns
-                frame[y, x, 0] = min(255, max(0, wave_x))  # Blue
-                frame[y, x, 1] = min(255, max(0, int(128 + 80 * np.sin(x * 0.005 + y * 0.005 + t))))  # Green
-                frame[y, x, 2] = min(255, max(0, wave_y))  # Red
+        # Create coordinate grids using NumPy meshgrid (vectorized)
+        x = np.arange(self.width, dtype=np.float32)
+        y = np.arange(self.height, dtype=np.float32)
+        X, Y = np.meshgrid(x, y)
+        
+        # Create moving wave patterns using vectorized NumPy operations
+        wave_x = 128 + 100 * np.sin(X * 0.01 + t)
+        wave_y = 128 + 100 * np.cos(Y * 0.01 + t * 0.7)
+        green_pattern = 128 + 80 * np.sin(X * 0.005 + Y * 0.005 + t)
+        
+        # Clip values to valid range and convert to uint8
+        wave_x = np.clip(wave_x, 0, 255).astype(np.uint8)
+        wave_y = np.clip(wave_y, 0, 255).astype(np.uint8)
+        green_pattern = np.clip(green_pattern, 0, 255).astype(np.uint8)
+        
+        # Create frame with RGB channels
+        frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
+        frame[:, :, 0] = wave_x  # Blue channel
+        frame[:, :, 1] = green_pattern  # Green channel
+        frame[:, :, 2] = wave_y  # Red channel
         
         # Add some geometric shapes for object detection testing
         self._add_test_objects(frame, t)
@@ -129,18 +135,24 @@ class MockCamera(CameraInterface):
         
         frame[rect_y:rect_y+rect_h, rect_x:rect_x+rect_w] = [0, 255, 255]  # Yellow rectangle
         
-        # Moving circle (simulates a "person")
+        # Moving circle (simulates a "person") - optimized version
         circle_x = int(self.width // 2 + 200 * np.cos(t * 0.8))
         circle_y = int(self.height // 2 + 150 * np.sin(t * 0.6))
         circle_radius = 40
         
-        # Simple circle drawing
-        for dy in range(-circle_radius, circle_radius + 1):
-            for dx in range(-circle_radius, circle_radius + 1):
-                if dx*dx + dy*dy <= circle_radius*circle_radius:
-                    x, y = circle_x + dx, circle_y + dy
-                    if 0 <= x < self.width and 0 <= y < self.height:
-                        frame[y, x] = [255, 0, 0]  # Blue circle
+        # Efficient circle drawing using NumPy
+        y_min = max(0, circle_y - circle_radius)
+        y_max = min(self.height, circle_y + circle_radius + 1)
+        x_min = max(0, circle_x - circle_radius)
+        x_max = min(self.width, circle_x + circle_radius + 1)
+        
+        if y_min < y_max and x_min < x_max:
+            # Create coordinate grids for the circle region
+            yy, xx = np.mgrid[y_min:y_max, x_min:x_max]
+            # Calculate distance from circle center
+            circle_mask = (xx - circle_x)**2 + (yy - circle_y)**2 <= circle_radius**2
+            # Apply blue color to pixels within circle
+            frame[y_min:y_max, x_min:x_max][circle_mask] = [255, 0, 0]  # Blue circle
     
     def _add_text_overlay(self, frame: np.ndarray) -> None:
         """Add text overlay to the frame."""
