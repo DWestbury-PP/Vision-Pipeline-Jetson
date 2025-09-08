@@ -141,40 +141,46 @@ class MoondreamAPI:
             try:
                 uptime = time.time() - self.start_time
                 
-                # Collect service statuses
+                # Detect service activity through WebSocket handler timestamps
                 services = []
                 
-                if self.camera_service:
-                    camera_info = await self.camera_service.get_camera_info() if hasattr(self.camera_service, 'get_camera_info') else {}
-                    services.append(ServiceStatusResponse(
+                # Check if services are active by looking at recent activity
+                current_time = time.time()
+                
+                camera_active = hasattr(self.websocket_handler, 'last_frame_time') and \
+                              (current_time - getattr(self.websocket_handler, 'last_frame_time', 0)) < 30
+                
+                yolo_active = hasattr(self.websocket_handler, 'last_yolo_time') and \
+                            (current_time - getattr(self.websocket_handler, 'last_yolo_time', 0)) < 30
+                
+                moondream_active = hasattr(self.websocket_handler, 'last_vlm_time') and \
+                                 (current_time - getattr(self.websocket_handler, 'last_vlm_time', 0)) < 60
+                
+                fusion_active = hasattr(self.websocket_handler, 'last_fusion_time') and \
+                              (current_time - getattr(self.websocket_handler, 'last_fusion_time', 0)) < 30
+                
+                services.extend([
+                    ServiceStatusResponse(
                         service_name="camera",
-                        is_running=getattr(self.camera_service, 'is_running', False),
-                        details=camera_info
-                    ))
-                
-                if self.yolo_service:
-                    yolo_info = await self.yolo_service.get_service_info() if hasattr(self.yolo_service, 'get_service_info') else {}
-                    services.append(ServiceStatusResponse(
+                        is_running=camera_active,
+                        details={"last_activity": getattr(self.websocket_handler, 'last_frame_time', 0)}
+                    ),
+                    ServiceStatusResponse(
                         service_name="yolo",
-                        is_running=getattr(self.yolo_service, 'is_running', False),
-                        details=yolo_info
-                    ))
-                
-                if self.moondream_service:
-                    moondream_info = await self.moondream_service.get_service_info() if hasattr(self.moondream_service, 'get_service_info') else {}
-                    services.append(ServiceStatusResponse(
+                        is_running=yolo_active,
+                        details={"last_activity": getattr(self.websocket_handler, 'last_yolo_time', 0)}
+                    ),
+                    ServiceStatusResponse(
                         service_name="moondream",
-                        is_running=getattr(self.moondream_service, 'is_running', False),
-                        details=moondream_info
-                    ))
-                
-                if self.fusion_service:
-                    fusion_info = await self.fusion_service.get_service_info() if hasattr(self.fusion_service, 'get_service_info') else {}
-                    services.append(ServiceStatusResponse(
+                        is_running=moondream_active,
+                        details={"last_activity": getattr(self.websocket_handler, 'last_vlm_time', 0)}
+                    ),
+                    ServiceStatusResponse(
                         service_name="fusion",
-                        is_running=getattr(self.fusion_service, 'is_running', False),
-                        details=fusion_info
-                    ))
+                        is_running=fusion_active,
+                        details={"last_activity": getattr(self.websocket_handler, 'last_fusion_time', 0)}
+                    )
+                ])
                 
                 # Create system status (placeholder)
                 from ..shared.models import SystemStatus

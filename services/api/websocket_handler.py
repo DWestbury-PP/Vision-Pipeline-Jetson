@@ -158,6 +158,12 @@ class WebSocketHandler:
         self.is_running = False
         self.subscription_tasks: Dict[str, asyncio.Task] = {}
         
+        # Track last activity timestamps for service status
+        self.last_frame_time = 0
+        self.last_yolo_time = 0
+        self.last_vlm_time = 0
+        self.last_fusion_time = 0
+        
         # Frame processing
         self.latest_frame: Optional[np.ndarray] = None
         self.latest_frame_metadata: Optional[FrameMetadata] = None
@@ -246,6 +252,9 @@ class WebSocketHandler:
     async def _handle_frame_update(self, frame: np.ndarray, metadata: FrameMetadata) -> None:
         """Handle camera frame updates."""
         try:
+            import time
+            self.last_frame_time = time.time()  # Track camera activity
+            
             self.logger.info(f"Handling frame update for frame {metadata.frame_id}")
             self.latest_frame = frame
             self.latest_frame_metadata = metadata
@@ -281,6 +290,9 @@ class WebSocketHandler:
     async def _handle_yolo_result(self, message: DetectionMessage) -> None:
         """Handle YOLO detection results."""
         try:
+            import time
+            self.last_yolo_time = time.time()  # Track YOLO activity
+            
             self.logger.info(f"Received YOLO detection for frame {message.frame_id} with {len(message.result.bounding_boxes)} objects")
             
             ws_message = WSDetectionUpdate(
@@ -308,6 +320,9 @@ class WebSocketHandler:
     async def _handle_vlm_result(self, message: VLMMessage) -> None:
         """Handle VLM results."""
         try:
+            import time
+            self.last_vlm_time = time.time()  # Track VLM activity
+            
             ws_message = WSDetectionUpdate(
                 frame_id=message.frame_id,
                 vlm_result=message.result
@@ -329,6 +344,9 @@ class WebSocketHandler:
     async def _handle_fusion_result(self, message) -> None:
         """Handle fusion results."""
         try:
+            import time
+            self.last_fusion_time = time.time()  # Track fusion activity
+            
             # Extract ProcessingPipelineResult from FusionResultMessage
             if hasattr(message, 'result'):
                 # It's a FusionResultMessage with the result wrapped
@@ -339,7 +357,7 @@ class WebSocketHandler:
             
             # Now safely access frame_metadata
             if not hasattr(fusion_result, 'frame_metadata'):
-                self.logger.warning(f"Fusion result missing frame_metadata: {type(fusion_result)}")
+                self.logger.warning(f"Fusion result missing frame_metadata: {type(fusion_result)}, attrs: {dir(fusion_result)}")
                 return
                 
             ws_message = WSDetectionUpdate(
