@@ -311,12 +311,35 @@ class NativeYOLOService:
                                     # Reconstruct numpy array
                                     frame = np.frombuffer(frame_bytes, dtype=dtype).reshape(shape)
                                     
-                                    # Process frame with YOLO
-                                    detection_result = self.process_frame_array(frame, metadata_dict)
-                                    
-                                    # Publish results
-                                    if detection_result:
-                                        self.publish_detection(detection_result)
+                            # Process frame with YOLO
+                            detection_result = self.process_frame_array(frame, metadata_dict)
+                            
+                            # Add debug logging
+                            if hasattr(self, 'model') and self.model is not None:
+                                # Log frame info
+                                self.logger.info(f"Processing frame shape: {frame.shape}, dtype: {frame.dtype}, range: [{frame.min()}, {frame.max()}]")
+                                
+                                # Run raw YOLO prediction for debugging
+                                try:
+                                    raw_results = self.model(frame, conf=0.001, verbose=False)  # Ultra-low confidence for debugging
+                                    if raw_results and len(raw_results) > 0:
+                                        raw_detections = raw_results[0].boxes
+                                        if raw_detections is not None and len(raw_detections) > 0:
+                                            self.logger.info(f"Raw YOLO found {len(raw_detections)} detections with conf=0.001")
+                                            for i, box in enumerate(raw_detections):
+                                                conf = float(box.conf[0])
+                                                cls = int(box.cls[0])
+                                                self.logger.info(f"  Detection {i}: class={cls}, conf={conf:.4f}")
+                                        else:
+                                            self.logger.info("Raw YOLO found 0 detections even with conf=0.001")
+                                    else:
+                                        self.logger.info("Raw YOLO returned no results")
+                                except Exception as debug_e:
+                                    self.logger.error(f"Debug YOLO run failed: {debug_e}")
+                            
+                            # Publish results
+                            if detection_result:
+                                self.publish_detection(detection_result)
                                         
                                 except Exception as e:
                                     self.logger.error(f"Error processing message: {e}")
