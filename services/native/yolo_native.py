@@ -296,28 +296,28 @@ class NativeYOLOService:
                                     import pickle
                                     frame_package = pickle.loads(message['data'])
                             
-                            # Extract frame data and metadata
-                            frame_bytes = frame_package['frame_data']
-                            metadata_dict = frame_package['metadata']
-                            shape = frame_package['shape']
-                            dtype = frame_package['dtype']
-                            compressed = frame_package.get('compressed', False)
+                                    # Extract frame data and metadata
+                                    frame_bytes = frame_package['frame_data']
+                                    metadata_dict = frame_package['metadata']
+                                    shape = frame_package['shape']
+                                    dtype = frame_package['dtype']
+                                    compressed = frame_package.get('compressed', False)
                             
-                            # Decompress if needed
-                            if compressed:
-                                import gzip
-                                frame_bytes = gzip.decompress(frame_bytes)
-                            
-                            # Reconstruct numpy array
-                            frame = np.frombuffer(frame_bytes, dtype=dtype).reshape(shape)
-                            
-                            # Process frame with YOLO
-                            detection_result = self.process_frame_array(frame, metadata_dict)
-                            
-                            # Publish results
-                            if detection_result:
-                                self.publish_detection(detection_result)
-                                
+                                    # Decompress if needed
+                                    if compressed:
+                                        import gzip
+                                        frame_bytes = gzip.decompress(frame_bytes)
+                                    
+                                    # Reconstruct numpy array
+                                    frame = np.frombuffer(frame_bytes, dtype=dtype).reshape(shape)
+                                    
+                                    # Process frame with YOLO
+                                    detection_result = self.process_frame_array(frame, metadata_dict)
+                                    
+                                    # Publish results
+                                    if detection_result:
+                                        self.publish_detection(detection_result)
+                                        
                                 except Exception as e:
                                     self.logger.error(f"Error processing message: {e}")
                     except Exception as e:
