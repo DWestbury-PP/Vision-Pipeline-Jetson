@@ -9,7 +9,7 @@ from ..message_bus.redis_bus import RedisMessageBus
 from ..message_bus.base import MessageBusSubscriber, MessageBusPublisher, Channels
 from ..shared.models import (
     DetectionResult, VLMResult, ProcessingPipelineResult, FrameMetadata,
-    DetectionMessage, VLMMessage, BoundingBox
+    DetectionMessage, VLMMessage, BoundingBox, FusionResultMessage
 )
 from ..shared.logging_config import setup_logging, log_performance_metrics, log_error_with_context
 from ..shared.config import get_config
@@ -301,10 +301,16 @@ class FusionService:
                 frame_metadata, yolo_result, vlm_result
             )
             
+            # Create fusion result message
+            fusion_message = FusionResultMessage(
+                result=fused_result,
+                source_service="fusion_service"
+            )
+            
             # Publish fused result
             await self.publisher.publish_message(
                 Channels.FUSION_RESULTS,
-                fused_result
+                fusion_message
             )
             
             processing_time = (time.perf_counter() - start_time) * 1000

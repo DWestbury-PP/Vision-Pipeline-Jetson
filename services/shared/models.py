@@ -184,3 +184,9 @@ class ConfigurationMessage(BusMessage):
     """Configuration update message.""" 
     message_type: Literal["configuration"] = Field(default="configuration")
     configuration: Dict[str, Any]
+
+
+class FusionResultMessage(BusMessage):
+    """Fusion result message."""
+    message_type: Literal["fusion_result"] = Field(default="fusion_result")
+    result: ProcessingPipelineResult
