@@ -3,8 +3,11 @@
 import asyncio
 import time
 import numpy as np
+import cv2
 from typing import Tuple, Optional, Dict, Any
 from datetime import datetime
+from pathlib import Path
+import os
 
 from .base import CameraInterface, CameraFactory
 from ..shared.models import FrameMetadata
@@ -17,9 +20,10 @@ class MockCamera(CameraInterface):
         super().__init__(camera_id)
         self.width = 1920
         self.height = 1080
-        self.fps = 30
+        self.fps = 10  # Lower FPS for testing
         self.frame_interval = 1.0 / self.fps
         self.last_frame_time = 0
+        self.test_image = None  # Will hold the loaded image
         
         # Mock camera parameters
         self.brightness = 50
@@ -31,8 +35,11 @@ class MockCamera(CameraInterface):
         try:
             self.width = kwargs.get('width', 1920)
             self.height = kwargs.get('height', 1080)
-            self.fps = kwargs.get('fps', 30)
+            self.fps = kwargs.get('fps', 10)
             self.frame_interval = 1.0 / self.fps
+            
+            # Try to load a real test image
+            self._load_test_image()
             
             print(f"🎥 Mock camera initialized: {self.width}x{self.height} @ {self.fps}fps")
             return True
@@ -68,8 +75,11 @@ class MockCamera(CameraInterface):
         self.last_frame_time = current_time
         
         try:
-            # Generate synthetic frame with moving pattern
-            frame = self._generate_synthetic_frame()
+            # Use loaded test image if available, otherwise generate synthetic
+            if self.test_image is not None:
+                frame = self.test_image.copy()
+            else:
+                frame = self._generate_synthetic_frame()
             
             # Create frame metadata
             metadata = FrameMetadata(
@@ -87,6 +97,34 @@ class MockCamera(CameraInterface):
         except Exception as e:
             print(f"❌ Mock camera frame generation failed: {e}")
             return None
+    
+    def _load_test_image(self) -> None:
+        """Load a test image from file if available."""
+        # Try multiple possible locations for the test image
+        possible_paths = [
+            "/app/AI-Generated-Person.png",  # In container
+            "./AI-Generated-Person.png",     # Current directory
+            "../AI-Generated-Person.png",    # Parent directory
+            "/app/test-person.jpg",          # Alternative name
+            "./test-person.jpg",
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                try:
+                    img = cv2.imread(path)
+                    if img is not None:
+                        # Resize to our target resolution
+                        self.test_image = cv2.resize(img, (self.width, self.height))
+                        # Convert BGR to RGB (OpenCV loads as BGR)
+                        self.test_image = cv2.cvtColor(self.test_image, cv2.COLOR_BGR2RGB)
+                        print(f"✅ Loaded test image from {path}")
+                        return
+                except Exception as e:
+                    print(f"⚠️ Failed to load image from {path}: {e}")
+        
+        print("ℹ️ No test image found, will use synthetic frames")
+        self.test_image = None
     
     def _generate_synthetic_frame(self) -> np.ndarray:
         """Generate a STATIC TEST FRAME with realistic objects for YOLO."""

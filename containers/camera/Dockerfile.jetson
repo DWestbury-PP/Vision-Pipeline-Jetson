@@ -38,6 +38,9 @@ COPY services/ ./services/
 COPY scripts/ ./scripts/
 COPY env.example .env
 
+# Copy test image if it exists (ignore error if not present)
+COPY AI-Generated-Person.pn[g] /app/AI-Generated-Person.png
+
 # Set ownership
 RUN chown -R appuser:appuser /app
 
