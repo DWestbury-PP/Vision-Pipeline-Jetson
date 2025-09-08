@@ -160,8 +160,8 @@ class NativeMoondreamService:
             # Import the model classes
             from transformers import AutoModelForCausalLM, AutoTokenizer
             
-            # Load model from local directory
-            model_path = str(project_root / "models" / "moondream" / "moondream2")
+            # Load model from local directory (bind-mounted)
+            model_path = "/app/models/moondream/moondream2"
             
             self.logger.info(f"Loading model from {model_path}")
             self.model = AutoModelForCausalLM.from_pretrained(
@@ -171,7 +171,13 @@ class NativeMoondreamService:
             )
             self.model = self.model.to(self.device)
             
-            self.logger.info("Model loaded successfully!")
+            # Load tokenizer
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_path,
+                trust_remote_code=True
+            )
+            
+            self.logger.info("Model and tokenizer loaded successfully!")
             return True
             
         except Exception as e:
