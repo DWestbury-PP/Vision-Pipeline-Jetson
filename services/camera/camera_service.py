@@ -7,6 +7,7 @@ from typing import Optional
 from .base import CameraFactory
 from . import jetson_csi  # Register Jetson CSI camera
 from . import mock_camera  # Register Mock camera for testing
+from . import simple_mock_camera  # Register Simple Mock camera with static image
 from ..message_bus.redis_bus import RedisMessageBus
 from ..message_bus.base import MessageBusPublisher, Channels
 from ..shared.models import SystemStatus, StatusMessage

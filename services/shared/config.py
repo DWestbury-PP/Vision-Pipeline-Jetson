@@ -94,7 +94,7 @@ class Config(BaseSettings):
     redis_db: int = Field(default=0, env="REDIS_DB")
     
     # Camera configuration
-    camera_type: Literal["mac_studio", "jetson_csi", "usb", "mock"] = Field(default="mock", env="CAMERA_TYPE")
+    camera_type: Literal["mac_studio", "jetson_csi", "usb", "mock", "simple_mock"] = Field(default="simple_mock", env="CAMERA_TYPE")
     camera_index: int = Field(default=0, env="CAMERA_INDEX")
     camera_width: int = Field(default=1920, env="CAMERA_WIDTH")
     camera_height: int = Field(default=1080, env="CAMERA_HEIGHT")
