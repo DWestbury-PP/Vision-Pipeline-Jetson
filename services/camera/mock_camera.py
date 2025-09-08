@@ -124,10 +124,10 @@ class MockCamera(CameraInterface):
     
     def _add_test_objects(self, frame: np.ndarray, t: float) -> None:
         """Add realistic objects that YOLO can detect."""
-        # Car-like object (dark rectangular body with lighter top)
-        car_x = int(200 + 150 * np.sin(t * 0.3))
-        car_y = int(300 + 50 * np.cos(t * 0.2))
-        car_w, car_h = 160, 90
+        # Car-like object (larger, more distinctive)
+        car_x = int(300 + 200 * np.sin(t * 0.3))
+        car_y = int(400 + 80 * np.cos(t * 0.2))
+        car_w, car_h = 220, 120  # Larger size
         
         # Ensure car stays within bounds
         car_x = max(0, min(self.width - car_w, car_x))
@@ -141,10 +141,10 @@ class MockCamera(CameraInterface):
         # Car windows (dark)
         frame[car_y+5:car_y+roof_h-5, car_x+30:car_x+car_w-30] = [20, 20, 40]
         
-        # Person-like object (vertical rectangle with head)
-        person_x = int(self.width // 2 + 250 * np.cos(t * 0.6))
-        person_y = int(200 + 100 * np.sin(t * 0.4))
-        person_w, person_h = 50, 120
+        # Person-like object (larger, more distinctive)
+        person_x = int(self.width // 2 + 300 * np.cos(t * 0.6))
+        person_y = int(250 + 120 * np.sin(t * 0.4))
+        person_w, person_h = 80, 180  # Larger person
         
         # Ensure person stays within bounds  
         person_x = max(0, min(self.width - person_w, person_x))
@@ -171,10 +171,10 @@ class MockCamera(CameraInterface):
             # Apply skin tone to head
             frame[y_min:y_max, x_min:x_max][head_mask] = [200, 160, 140]  # Head color
             
-        # Add a bottle/cup object (common YOLO class)
-        bottle_x = int(100 + 80 * np.sin(t * 0.9))
-        bottle_y = int(400 + 30 * np.cos(t * 0.7))
-        bottle_w, bottle_h = 30, 80
+        # Add a large bottle/cup object (common YOLO class)
+        bottle_x = int(150 + 100 * np.sin(t * 0.9))
+        bottle_y = int(500 + 50 * np.cos(t * 0.7))
+        bottle_w, bottle_h = 60, 140  # Much larger bottle
         
         # Ensure bottle stays within bounds
         bottle_x = max(0, min(self.width - bottle_w, bottle_x))

@@ -149,6 +149,11 @@ class NativeMoondreamService:
                 
             self.logger.info("Loading Moondream2 model from local files...")
             
+            # Set environment variables to force local-only mode
+            import os
+            os.environ['TRANSFORMERS_OFFLINE'] = '1'
+            os.environ['HF_DATASETS_OFFLINE'] = '1'
+            
             # Set device - use MPS for Apple Silicon
             if torch.backends.mps.is_available():
                 self.device = torch.device("mps")
@@ -162,6 +167,16 @@ class NativeMoondreamService:
             
             # Load model from local directory (bind-mounted)
             model_path = "/app/models/moondream/moondream2"
+            
+            # Check if model directory exists and list contents
+            import os
+            if os.path.exists(model_path):
+                self.logger.info(f"Model directory exists: {model_path}")
+                files = os.listdir(model_path)
+                self.logger.info(f"Model directory contains: {files[:10]}...")  # First 10 files
+            else:
+                self.logger.error(f"Model directory does not exist: {model_path}")
+                return False
             
             self.logger.info(f"Loading model from {model_path}")
             self.model = AutoModelForCausalLM.from_pretrained(
