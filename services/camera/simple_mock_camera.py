@@ -11,6 +11,11 @@ from pathlib import Path
 from .base import CameraInterface, CameraFactory
 from ..shared.models import FrameMetadata
 
+# Register this camera type when the module is imported
+def register():
+    """Register the simple mock camera with the factory."""
+    CameraFactory.register_camera("simple_mock", SimpleMockCamera)
+
 
 class SimpleMockCamera(CameraInterface):
     """Simple mock camera that uses a static test image for YOLO testing."""
@@ -134,5 +139,5 @@ class SimpleMockCamera(CameraInterface):
         print("🧹 Simple mock camera cleaned up")
 
 
-# Register the simple mock camera
-CameraFactory.register_camera("simple_mock", SimpleMockCamera)
+# Register the camera when module is imported
+register()
