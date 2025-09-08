@@ -187,6 +187,24 @@ class NativeMoondreamService:
             if model_path not in sys.path:
                 sys.path.insert(0, model_path)
             
+            # Set environment to force local loading and create cache directory
+            import os
+            os.environ['TRANSFORMERS_OFFLINE'] = '1'
+            os.environ['HF_DATASETS_OFFLINE'] = '1'
+            
+            # Create the expected cache directory structure if it doesn't exist
+            cache_dir = "/home/appuser/.cache/huggingface/modules/transformers_modules/moondream2"
+            os.makedirs(cache_dir, exist_ok=True)
+            
+            # Copy model files to cache location if they don't exist there
+            import shutil
+            for file_name in ['layers.py', 'moondream.py', 'vision_encoder.py', 'configuration_moondream.py']:
+                src_path = os.path.join(model_path, file_name)
+                dst_path = os.path.join(cache_dir, file_name)
+                if os.path.exists(src_path) and not os.path.exists(dst_path):
+                    shutil.copy2(src_path, dst_path)
+                    self.logger.info(f"Copied {file_name} to cache directory")
+            
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_path,
                 trust_remote_code=True,
