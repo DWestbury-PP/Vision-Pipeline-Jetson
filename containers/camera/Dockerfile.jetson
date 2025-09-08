@@ -1,5 +1,5 @@
-# Jetson camera service with CSI camera support
-FROM nvcr.io/nvidia/l4t-pytorch:r35.2.1-pth2.0-py3
+# Jetson camera service with CSI camera support for JetPack 6.2.1 (L4T 36.4.4)
+FROM nvcr.io/nvidia/l4t-cuda:12.6.11-runtime
 
 # Prevent interactive prompts during build
 ENV DEBIAN_FRONTEND=noninteractive
@@ -8,16 +8,18 @@ ENV TZ=UTC
 # Set working directory
 WORKDIR /app
 
-# Install essential system dependencies (minimal set for network resilience)
+# Install essential system dependencies (Ubuntu 22.04 has proper libffi8 support)
 # Note: Many GStreamer packages are pre-installed in L4T containers
-RUN apt-get update && apt-get install -y --fix-missing \
-    libffi7 \
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-dev \
+    libffi8 \
     v4l-utils \
-    || (apt-get update --fix-missing && apt-get install -y libffi7 v4l-utils) \
-    && rm -rf /var/lib/apt/lists/* || true
-
-# Create libffi.so.8 symlink to fix OpenCV compatibility
-RUN ln -sf /usr/lib/aarch64-linux-gnu/libffi.so.7 /usr/lib/aarch64-linux-gnu/libffi.so.8 || true
+    gstreamer1.0-tools \
+    gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \

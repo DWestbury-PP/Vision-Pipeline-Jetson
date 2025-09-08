@@ -1,5 +1,5 @@
-# Jetson fusion service for combining CV outputs
-FROM nvcr.io/nvidia/l4t-pytorch:r35.2.1-pth2.0-py3
+# Jetson fusion service for combining CV outputs for JetPack 6.2.1 (L4T 36.4.4)
+FROM nvcr.io/nvidia/l4t-cuda:12.6.11-runtime
 
 # Prevent interactive prompts during build
 ENV DEBIAN_FRONTEND=noninteractive
@@ -8,14 +8,13 @@ ENV TZ=UTC
 # Set working directory
 WORKDIR /app
 
-# Install essential system dependencies (minimal set for network resilience)
-RUN apt-get update && apt-get install -y --fix-missing \
-    libffi7 \
-    || (apt-get update --fix-missing && apt-get install -y libffi7) \
-    && rm -rf /var/lib/apt/lists/* || true
-
-# Create libffi.so.8 symlink to fix OpenCV compatibility
-RUN ln -sf /usr/lib/aarch64-linux-gnu/libffi.so.7 /usr/lib/aarch64-linux-gnu/libffi.so.8 || true
+# Install essential system dependencies (Ubuntu 22.04 has proper libffi8 support)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-dev \
+    libffi8 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \

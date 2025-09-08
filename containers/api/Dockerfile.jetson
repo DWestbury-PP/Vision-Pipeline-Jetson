@@ -1,5 +1,5 @@
-# Jetson API service with FastAPI and WebSocket support
-FROM nvcr.io/nvidia/l4t-pytorch:r35.2.1-pth2.0-py3
+# Jetson API service with FastAPI and WebSocket support for JetPack 6.2.1 (L4T 36.4.4)
+FROM nvcr.io/nvidia/l4t-cuda:12.6.11-runtime
 
 # Prevent interactive prompts during build
 ENV DEBIAN_FRONTEND=noninteractive
@@ -8,21 +8,13 @@ ENV TZ=UTC
 # Set working directory
 WORKDIR /app
 
-# Install essential system dependencies (minimal set for network resilience)
-RUN apt-get update && apt-get install -y --fix-missing \
-    libffi7 \
-    || (apt-get update --fix-missing && apt-get install -y libffi7) \
-    && rm -rf /var/lib/apt/lists/* || true
-
-# Download and install libffi8 manually for OpenCV compatibility
-RUN cd /tmp && \
-    wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/libf/libffi/libffi8_3.4.2-4_arm64.deb || \
-    wget -q http://archive.ubuntu.com/ubuntu/pool/main/libf/libffi/libffi8_3.4.2-4_arm64.deb || \
-    echo "libffi8 download failed" && \
-    (dpkg -i libffi8_*.deb 2>/dev/null || \
-     (echo "libffi8 installation failed, using fallback symlink" && \
-      ln -sf /usr/lib/aarch64-linux-gnu/libffi.so.7 /usr/lib/aarch64-linux-gnu/libffi.so.8)) && \
-    rm -f /tmp/libffi8_*.deb || true
+# Install essential system dependencies (Ubuntu 22.04 has proper libffi8 support)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-dev \
+    libffi8 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \

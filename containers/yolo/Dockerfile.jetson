@@ -1,5 +1,5 @@
-# Jetson YOLO service with CUDA GPU acceleration  
-FROM nvcr.io/nvidia/l4t-pytorch:r35.2.1-pth2.0-py3
+# Jetson YOLO service with CUDA GPU acceleration for JetPack 6.2.1 (L4T 36.4.4)
+FROM nvcr.io/nvidia/l4t-cuda:12.6.11-runtime
 
 # Prevent interactive prompts during build
 ENV DEBIAN_FRONTEND=noninteractive
@@ -8,22 +8,13 @@ ENV TZ=UTC
 # Set working directory
 WORKDIR /app
 
-# Install essential system dependencies including libffi8 for OpenCV compatibility
-RUN apt-get update && apt-get install -y --fix-missing \
-    libffi7 \
-    software-properties-common \
-    || (apt-get update --fix-missing && apt-get install -y libffi7 software-properties-common) \
-    && rm -rf /var/lib/apt/lists/* || true
-
-# Download and install libffi8 manually for OpenCV compatibility
-RUN cd /tmp && \
-    wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/libf/libffi/libffi8_3.4.2-4_arm64.deb || \
-    wget -q http://archive.ubuntu.com/ubuntu/pool/main/libf/libffi/libffi8_3.4.2-4_arm64.deb || \
-    echo "libffi8 download failed" && \
-    (dpkg -i libffi8_*.deb 2>/dev/null || \
-     (echo "libffi8 installation failed, using fallback symlink" && \
-      ln -sf /usr/lib/aarch64-linux-gnu/libffi.so.7 /usr/lib/aarch64-linux-gnu/libffi.so.8)) && \
-    rm -f /tmp/libffi8_*.deb || true
+# Install essential system dependencies (Ubuntu 22.04 has proper libffi8 support)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-dev \
+    libffi8 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \
@@ -38,19 +29,9 @@ RUN pip3 install --upgrade pip setuptools wheel
 COPY containers/requirements-l4t-minimal.txt .
 RUN pip3 install --no-cache-dir --timeout 300 --retries 3 -r requirements-l4t-minimal.txt
 
-# Install ultralytics for YOLO inference (exclude opencv to avoid conflicts)
-RUN pip3 install --no-cache-dir --timeout 600 --retries 5 \
-    --no-deps ultralytics==8.0.120 && \
-    pip3 install --no-cache-dir \
-    matplotlib>=3.2.2 \
-    Pillow>=7.1.2 \
-    PyYAML>=5.3.1 \
-    requests>=2.23.0 \
-    scipy>=1.4.1 \
-    tqdm>=4.64.0 \
-    pandas>=1.1.4 \
-    seaborn>=0.11.0 \
-    || echo "Warning: Failed to install ultralytics, YOLO will run in mock mode"
+# Install ultralytics for YOLO inference (Ubuntu 22.04 should handle all dependencies properly)
+RUN pip3 install --no-cache-dir ultralytics==8.3.0 || \
+    echo "Warning: Failed to install ultralytics, YOLO will run in mock mode"
 
 # Copy application code
 COPY services/ ./services/
