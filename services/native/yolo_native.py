@@ -284,15 +284,17 @@ class NativeYOLOService:
             import threading
             
             def process_messages():
-                """Process Redis messages in a thread."""
+                """Process Redis messages in a thread with error recovery."""
                 self.logger.info("Message processing thread started")
-                for message in self.pubsub.listen():
-                    if message['type'] == 'message':
-                        try:
-                            self.logger.info(f"Processing frame from Redis")
-                            # Unpickle frame package
-                            import pickle
-                            frame_package = pickle.loads(message['data'])
+                while True:
+                    try:
+                        for message in self.pubsub.listen():
+                            if message['type'] == 'message':
+                                try:
+                                    self.logger.info(f"Processing frame from Redis")
+                                    # Unpickle frame package
+                                    import pickle
+                                    frame_package = pickle.loads(message['data'])
                             
                             # Extract frame data and metadata
                             frame_bytes = frame_package['frame_data']
@@ -316,8 +318,22 @@ class NativeYOLOService:
                             if detection_result:
                                 self.publish_detection(detection_result)
                                 
-                        except Exception as e:
-                            self.logger.error(f"Error processing message: {e}")
+                                except Exception as e:
+                                    self.logger.error(f"Error processing message: {e}")
+                    except Exception as e:
+                        self.logger.error(f"Redis connection lost: {e}")
+                        self.logger.info("Attempting to reconnect to Redis in 5 seconds...")
+                        import time
+                        time.sleep(5)
+                        try:
+                            # Reconnect to Redis
+                            self.redis_client = redis.Redis(host='redis', port=6379, decode_responses=False)
+                            self.pubsub = self.redis_client.pubsub()
+                            self.pubsub.subscribe('frame:camera.frames')
+                            self.logger.info("Successfully reconnected to Redis")
+                        except Exception as reconnect_error:
+                            self.logger.error(f"Failed to reconnect to Redis: {reconnect_error}")
+                            continue
             
             # Start processing thread
             thread = threading.Thread(target=process_messages, daemon=True)
